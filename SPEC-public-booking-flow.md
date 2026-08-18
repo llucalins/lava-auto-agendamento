@@ -6,81 +6,89 @@ Draft for human review. This is the Phase 1 specification for `public-booking-fl
 
 ## Objective
 
-Define the unauthenticated customer-facing orchestration for discovering advisory availability, entering approved booking data, reviewing authoritative terms, and explicitly requesting final booking confirmation. It improves usability and safety at the public boundary but is never authoritative for package, calendar, capacity, status-transition, or booking-integrity decisions.
+Define the unauthenticated customer-facing orchestration for selecting an active wash package, discovering package-specific advisory availability, entering the approved booking data only after an operationally plausible selection, reviewing current authoritative terms, and explicitly requesting final booking confirmation. It improves usability and safety at the public boundary but is never authoritative for package, calendar, capacity, status-transition, or booking-integrity decisions.
 
 ## Scope
 
-This specification defines public flow states, minimal collection/review/confirmation behavior, domain-error UX, privacy/browser-data constraints, abuse controls, and boundaries with the authoritative domain modules.
+This specification defines public flow states, package-specific availability discovery, minimal collection/review/confirmation behavior, stale-state and domain-error UX, privacy/browser-data constraints, abuse controls, and boundaries with the authoritative domain modules.
 
 ## Non-goals
 
 - Customer signup, password, customer account/profile, social login, or persistent customer authentication.
 - Final package price/duration/status, calendar eligibility, capacity, booking status transitions, booking confirmation integrity, public tracking credential, or general public booking lookup.
-- Fixed slots, capacity assumptions, payment processing, card/PIX/banking credentials, CAPTCHA/provider selection, analytics provider, or notification provider.
-- Choosing frontend/backend framework, database, ORM, session mechanism, idempotency mechanism, cloud provider, or HTTP mapping.
+- Fixed slots, capacity assumptions, temporary holds/reservations, payment processing, card/PIX/banking credentials, CAPTCHA/provider selection, analytics provider, or notification provider.
+- Choosing frontend/backend framework, database, ORM, browser session/storage mechanism, idempotency mechanism, cache technology, cloud provider, or HTTP mapping.
 
 ## Unauthenticated public flow and states
 
 MVP requires no customer login or account. A future temporary technical interaction/session may support security/usability, but must not become a customer account without a separately approved specification.
 
-The approved customer flow is preserved:
+The approved MVP customer flow is:
 
-1. Discover/select an available day.
-2. Discover/select an available time.
-3. Enter personal data.
-4. Enter vehicle data.
-5. Choose `DROP_OFF` or `PICKUP_REQUESTED`.
-6. If pickup is selected, enter pickup address.
-7. Discover/select wash package and authoritative displayed price.
+1. Discover/select wash package.
+2. Discover/select available day for the selected package.
+3. Discover/select available start time compatible with the selected package's authoritative duration.
+4. Enter personal data.
+5. Enter vehicle data.
+6. Choose `DROP_OFF` or `PICKUP_REQUESTED`.
+7. If `PICKUP_REQUESTED`, enter pickup address.
 8. Select intended payment method.
-9. Review material booking terms.
+9. Review material booking terms and entered data.
 10. Explicitly confirm booking.
 
-The flow may validate progressively and return to earlier steps for safe correction. It must not materially reorder approved information without human approval. Since package duration affects final availability, a time shown before package selection is advisory and must be revalidated at confirmation.
+This sequence is approved and is not an open question. Package selection precedes final availability because its authoritative duration affects calendar eligibility and final availability; it reduces misleading preliminary times. Sensitive customer data is collected only after the customer has found an operationally plausible package/date/time selection. Displayed availability remains advisory and never reserves capacity. The flow may validate progressively and return to earlier steps for safe correction, but must not materially reorder this approved information without human approval.
 
 ## Package, date, and availability discovery
 
-- `service-catalog` supplies safe public projections of active packages. The public flow renders package name/description, displayed BRL price, and duration only as server-provided non-authoritative display data.
-- `operating-calendar` may supply minimum derived calendar information approved for the booking experience; raw administrative calendar rules are not public.
+- `service-catalog` supplies safe public projections of active packages. The public flow renders package name/description, displayed BRL price, and duration only as server-provided, non-authoritative display data.
+- The client may identify the selected package by reference. It must not provide authoritative package activation state, revision, price, currency, duration, end time, calendar eligibility, capacity calculation, or final availability decision.
+- After package selection, availability discovery must use that package reference. The server/domain boundary remains authoritative for package activation state and revision, price, currency, duration, calendar eligibility, and final capacity.
+- `operating-calendar` may supply only minimum derived customer-facing availability information approved for this flow. Raw administrative calendar rules, blocked-period reasons, revisions, notes, internal resource use, and other customers' bookings are not public.
+- Package-specific availability must disclose only the minimum days/times needed for customer selection. It must not disclose bay count, staff count, capacity `N`, exact internal resource usage, other customers' bookings, internal calendar rules, or blocked-period reasons unless separately approved as public content.
+- A selected package change makes all previously selected date/time availability stale. The flow must re-evaluate it before review; it must not carry a prior selection forward as valid merely because the client still has it.
 - Displayed dates/times never reserve capacity or imply a temporary hold. No hold is introduced unless a future approved specification does so.
 - `booking-lifecycle` remains authoritative at confirmation for current package, commercial terms, calendar, duration, capacity/resource policy, and final integrity.
-- The public client may submit customer choices/references but never calculates or submits authoritative price, currency, duration, package revision, snapshot, end time, calendar eligibility, capacity, or booking status.
 
 ## Customer, vehicle, service-mode, and payment-intention collection
 
 - Collect only full name, phone/WhatsApp, CPF, optional email, vehicle model, licence plate, and vehicle colour.
 - CPF remains a current MVP requirement and is subject to the approved official-source verification gate before CPF storage implementation is finalized. This flow makes no legal claim and does not remove CPF.
-- `DROP_OFF` must not require or retain an unnecessary pickup address.
 - `PICKUP_REQUESTED` requires pickup address before review/confirmation.
+- If the customer changes from `PICKUP_REQUESTED` to `DROP_OFF`, remove the pickup address from the material booking request/state. Do not persist or submit it to `booking-lifecycle`, or retain it as hidden booking data for convenience. Any temporary UI-memory behavior is an implementation decision that must comply with `privacy-governance`.
 - The flow selects only intended payment method. It must not collect/display card number, CVV, banking credentials, PIX secret/key credential, payment-provider token, or payment-provider credentials.
 - Supported MVP payment-method values are unresolved. Once approved, the public flow presents only the server-validated allowlisted/domain values from `booking-lifecycle`.
 
-## Review and explicit confirmation contract
+## Review, invalidation, and explicit confirmation contract
 
-- Before final confirmation, the customer reviews selected date/start time, package name, package description or concise included-service representation, authoritative displayed BRL price, estimated duration, service mode, pickup information only when relevant, intended payment method, and customer/vehicle information needed to catch mistakes.
-- Privacy minimization applies to repeated fields: review must not unnecessarily display full CPF after entry and must evaluate masking/redaction for sensitive data.
+- Before presenting final review, the flow must resolve/reconcile current server-authoritative material package and scheduling terms; review must not rely only on stale frontend state.
+- Review must show current authoritative package name, customer-facing description or included-service representation, BRL price, estimated duration, selected start time subject to current calendar/availability state, service mode, and intended payment method, plus only the customer/vehicle/pickup information needed to catch mistakes.
+- Review must not unnecessarily redisplay full CPF. It must use a masked/redacted representation sufficient for recognition/checking without defining a masking algorithm here. Pickup address and contact data must be repeated only to the minimum useful degree for detecting mistakes. The original authoritative inputs remain server-side validated.
+- Any material customer change after review invalidates the prior review approval and requires review again before final confirmation. At minimum, material changes are package; date/start time; service mode; pickup address; intended payment method; and customer or vehicle data to be stored in the booking. A customer must not approve one state and silently confirm a materially different state.
 - The final confirmation action is explicit. Selecting a package/time, changing a step, or loading/reloading a page must never create a booking.
-- Final confirmation invokes `booking-lifecycle`'s authoritative confirmation boundary using one confirmation intent; the UI cannot replace its validation or snapshot creation.
+- Final confirmation invokes `booking-lifecycle`'s authoritative confirmation boundary using one confirmation intent. The UI cannot replace its package, calendar, capacity, or booking-invariant revalidation, nor its snapshot creation.
 
-## Stale terms, stale calendar, and capacity UX
+## Stale package, availability, calendar, and capacity UX
 
+- If package terms or selected availability become stale before review, refresh current authoritative terms/availability, clearly indicate that the prior selection changed, and require customer acknowledgement/review of the new state. Do not silently carry forward an invalid time.
+- If the package is now `INACTIVE`, require selection of another active package. If its duration changed, revalidate the prior date/time against current availability before it can be reviewed; if no longer valid, require a new date/time selection.
 - `STALE_COMMERCIAL_TERMS`: do not confirm silently. Present current server-authoritative package terms and require explicit renewed review/confirmation; distinguish this outcome from generic validation failure.
-- `CALENDAR_NO_LONGER_ELIGIBLE`: explain that the previously selected time is no longer available and direct the customer to current date/time selection without exposing internal calendar rules or other bookings.
-- `CAPACITY_UNAVAILABLE`: provide a safe path to select/review current availability without exposing bay counts, staff counts, concurrency state, or other customers' schedules.
-- The flow must not present any advisory selection as held/reserved and must not use client-cached terms/calendar state to override current server state.
+- `CALENDAR_NO_LONGER_ELIGIBLE`: explain that the previously selected time is no longer available and direct the customer to current package-specific date/time selection without exposing internal calendar rules or other bookings.
+- `CAPACITY_UNAVAILABLE`: provide a safe path to select/review current availability without exposing bay counts, staff counts, concurrency state, resource use, or other customers' schedules.
+- The flow must not present any advisory selection as held/reserved and must not use client-cached terms/calendar/availability state to override current server state.
 
 ## Retry, duplicate submission, and outcome UX
 
-- The public flow supports the `booking-lifecycle` idempotency contract. Double-clicks, browser/network retries, and timeout recovery must not intentionally create a second confirmation intent.
+- The public flow preserves the `booking-lifecycle` idempotency contract. Editing form data before final confirmation does not require generating multiple confirmation attempts.
+- Once a confirmation intent is submitted, double-clicks, browser/network retries, and ambiguous timeout recovery must continue resolving that same intent. The UI must not generate a replacement intent merely because the customer clicks again after an ambiguous outcome.
 - The UX distinguishes `CONFIRMED`, `DUPLICATE_OR_RECOVERED_CONFIRMATION`, still-resolving/unknown outcome where applicable, safe retry/recovery, and `IDEMPOTENCY_CONFLICT`.
-- After ambiguous timeout, it must not automatically generate a new intent or confirmation request until the authoritative result of the original intent has been resolved according to `booking-lifecycle`.
-- A material change by the customer after a prior intent requires an intentional new confirmation attempt; the eventual contract determines how the client requests that new intent without selecting a key/transport mechanism here.
+- If the original intent is authoritatively confirmed, show or recover its original contextual confirmation outcome; do not create another booking.
+- A material booking-data change after a submitted intent requires a deliberate new confirmation attempt only after the previous intent's authoritative outcome is resolved. Intent/key/transport representation remains deferred.
 
 ## Minimal successful confirmation response
 
-- The customer-facing success response is limited to information needed to confirm the booking just created, subject to `privacy-governance` and field minimization.
-- It must not create a general public booking lookup, expose internal booking identifiers as credentials, or disclose another customer's data.
-- The future `public-status-tracking` module owns any secure external tracking credential, storage, transport, URL, and status-minimum lookup. If a future credential is returned after confirmation, its contract belongs there, not here.
+- The customer-facing success response is contextual to the just-completed interaction: it clearly states that the booking was confirmed and shows only the minimum material booking summary useful to the customer.
+- It avoids unnecessary redisplay of CPF and other sensitive PII, does not expose internal `bookingId` as a lookup credential, and does not create a reusable unauthenticated general booking reader.
+- Exact minimal fields remain a product/UI decision. `public-status-tracking` remains responsible for any later secure tracking credential; no tracking credential, storage, transport, URL, or lookup design is created here.
 
 ## Validation and error UX contract
 
@@ -90,27 +98,29 @@ The transport-independent public/domain outcomes are:
 |---|---|
 | `INVALID_INPUT` | Identify correctable input at the relevant step without exposing security/persistence detail. |
 | `STALE_COMMERCIAL_TERMS` | Show current authoritative terms and require renewed review. |
-| `CALENDAR_NO_LONGER_ELIGIBLE` | Return to current availability selection safely. |
+| `CALENDAR_NO_LONGER_ELIGIBLE` | Return to current package-specific availability selection safely. |
 | `CAPACITY_UNAVAILABLE` | Offer current availability selection without capacity internals. |
 | `DUPLICATE_OR_RECOVERED_CONFIRMATION` | Safely identify/recover the prior outcome without creating another booking. |
-| `IDEMPOTENCY_CONFLICT` | Explain that the current attempt cannot be reused as submitted; preserve safety and offer a deliberate new attempt path. |
+| `IDEMPOTENCY_CONFLICT` | Explain that the current attempt cannot be reused as submitted; preserve safety and offer a deliberate new attempt path only after resolution. |
 | `CONFIRMED` | Show the minimal contextual confirmation response. |
 
 Errors must not expose stack traces, database details, internal booking IDs unnecessarily, capacity state, other customers' records, PII, audit internals, or security configuration. HTTP status mapping is deferred.
 
-## Privacy, browser-data, and content-safety boundaries
+## Privacy, browser-data, cache, and third-party-resource boundaries
 
-- No booking PII belongs in public URLs/query strings, analytics, raw request/response logs, browser-visible error diagnostics, or public tracking output.
-- Minimize repeated display of CPF/address/contact data and clear sensitive in-page state when it is no longer required where appropriate.
-- Evaluate browser history, cache, autofill, screenshots, shared-device use, referrer leakage, reverse proxies/CDN/access logs, monitoring, copied URLs, and third-party-resource exposure for pages carrying sensitive inputs. Do not silently prohibit useful browser behavior; select controls later based on usability/security tradeoffs.
+- Application-controlled durable browser storage must not place raw booking PII such as CPF, pickup address, phone, email, or licence plate in `localStorage`, `sessionStorage`, IndexedDB, URLs, or similar durable client-side application storage by default.
+- Do not silently choose a browser storage or session mechanism. If temporary browser state is required for this multi-step interaction, a later architecture must minimize its lifetime and exposure and justify the mechanism against privacy and shared-device risks. Browser autofill is a separate usability/security decision, not application-managed persistent storage.
+- Pages/responses containing sensitive booking data must not be stored in shared or intermediary caches. The eventual architecture must define appropriate browser/cache controls for sensitive booking interaction pages and confirmation responses; exact header syntax is deferred.
+- PII and secrets must not appear in URLs/query strings, referrers, proxy/CDN access logs through URL leakage, analytics, raw application logs, browser-visible error diagnostics, or public tracking output. History-visible URLs must contain no booking PII or secrets; this does not claim that browser history contains no trace of page visits.
+- Pages carrying sensitive booking inputs must minimize unnecessary third-party resources/integrations. No analytics, support widget, advertising script, telemetry integration, or third-party resource may receive booking PII unless separately approved under `privacy-governance` with an explicit minimum-data contract. No vendor is selected here.
 - Package descriptions and every echoed user-provided value—names, addresses, vehicle data, and error messages—must be safely rendered and never treated as executable/trusted HTML.
 - Production PII must not be copied into local development, test, demo, CI, or staging by default. Tests/demos use synthetic data.
 
 ## Abuse controls, rate limits, and CSRF
 
-- As an unauthenticated surface, the flow requires controls against booking spam, automated submissions, excessive availability queries, validation probing, repeated failed confirmations, and resource exhaustion.
-- Rate limits and abuse signals must distinguish availability discovery/normal public traffic from confirmation attempts. They must combine appropriate signals where available and not rely on IP address alone.
-- Abuse controls must not reveal whether another customer's booking exists and must not expose capacity internals.
+- As an unauthenticated surface, the flow requires controls against booking spam, automated submissions, excessive package/catalogue discovery, package-specific availability queries, validation probing, repeated failed confirmations, and resource exhaustion.
+- Abuse controls and rate limits must distinguish package/catalogue discovery, availability discovery, validation, and final confirmation. Package-specific availability queries must be rate-limited without making normal customer exploration unusable.
+- Limits and abuse signals must combine appropriate signals where available and not rely on source IP alone. Controls must not reveal whether another customer's booking exists or expose capacity internals.
 - CAPTCHA/challenge/provider technology is not selected here; it requires later justification and approval.
 - CSRF depends on the future browser/session model. If confirmation uses ambient browser credentials or a temporary server-side session, it requires appropriate CSRF protection. If a future model is not vulnerable to classical CSRF, that model must document why. Mechanism is deferred.
 
@@ -133,7 +143,7 @@ Consumes minimum derived calendar information only. It cannot determine final bo
 
 ### `booking-lifecycle`
 
-Calls authoritative commands and handles their distinguished outcomes. It cannot override package/calendar/capacity/confirmation/status/PII invariants.
+Calls authoritative commands and handles their distinguished outcomes. It cannot override authoritative package, calendar, capacity, confirmation, status, PII, or concurrency invariants.
 
 ### `public-status-tracking`
 
@@ -141,60 +151,61 @@ Has no tracking-token, status-projection, URL, or lookup design in this module. 
 
 ## Implementation gates
 
-Before final production confirmation flow is complete, the authoritative capacity/resource policy must be approved, actual business timezone configured, intended payment-method values approved, and CPF source-driven verification completed before CPF storage implementation is finalized. Capacity must never default to one.
+Before final production confirmation flow is complete, the authoritative capacity/resource policy must be approved, actual business timezone configured, intended payment-method values approved, and CPF official-source verification completed before CPF storage implementation is finalized. Capacity must never default to one.
 
 ## Technology, commands, project structure, code style, and testing
 
-- **Tech stack:** Deferred. No frontend/backend framework, database, ORM, CAPTCHA/analytics/session/idempotency/capacity mechanism, cloud provider, notification provider, or tracking-token mechanism is selected.
+- **Tech stack:** Deferred. No frontend/backend framework, database, ORM, CAPTCHA/analytics/session/browser-storage/idempotency/capacity/cache mechanism, cloud provider, notification provider, or tracking-token mechanism is selected.
 - **Commands:** Not applicable. This specification defines public orchestration requirements and creates no executable artifact.
 - **Project structure:** Deferred. No implementation layout is selected.
 - **Code style:** Not applicable. No application code or interface binding is selected.
-- **Testing and verification expectations:** Future implementation must verify the full happy path; no customer login; required/optional/conditional fields; drop-off address removal; pickup-address requirement; authoritative package values; stale terms/re-review; stale calendar/capacity outcomes; review and explicit confirmation; double-click/retry/timeout recovery; idempotency conflict; minimal confirmation response; no internal ID public access; abuse/rate limits; CSRF invariant; XSS-safe rendering; no PII in URLs/logs/analytics/errors; shared-device/browser-history/cache considerations; accessibility; and synthetic test data.
+- **Testing and verification expectations:** Future implementation must verify the approved package-first happy path; active-package-only package-specific availability; package-change staleness; no client-authoritative duration/end-time/capacity calculation; required/optional/conditional fields; pickup-address requirement and removal when changing to drop-off; current authoritative review reconciliation; review invalidation for every material change; stale/inactive/duration-changed package and stale availability recovery; final package/calendar/capacity revalidation; double-click/retry/timeout recovery of one intent; idempotency conflict and deliberate new-attempt path; minimal contextual confirmation response; no internal ID public access; differentiated abuse/rate limits; CSRF invariant; XSS-safe rendering; no PII in durable browser storage, URLs/referrers/logs/analytics/errors; cache and shared-device considerations; third-party-resource boundary; accessibility; and synthetic test data.
 
 ## Acceptance criteria
 
-- [ ] The unauthenticated flow preserves all approved customer steps without introducing a customer account, signup, password, profile, or social login.
-- [ ] Public discovery is advisory only and cannot reserve time or override authoritative catalogue/calendar/capacity state.
+- [ ] The unauthenticated flow uses the approved package-first customer sequence without introducing a customer account, signup, password, profile, or social login.
+- [ ] Package-specific availability uses only a customer-selected package reference; server/domain authority controls activation, revision, price, currency, duration, calendar eligibility, and final capacity, and no displayed availability reserves capacity.
+- [ ] Changing a package makes selected availability stale; inactive packages require another active selection and duration changes require date/time revalidation before review.
 - [ ] Only approved required/optional/conditional booking data is collected; drop-off removes unnecessary address, pickup requires address, and payment remains intent-only with no payment credentials.
-- [ ] Review presents material authoritative terms with minimized sensitive-data repetition, and only explicit final confirmation can request booking creation.
-- [ ] Stale package terms require renewed review; stale calendar and capacity outcomes are distinct where useful and lead safely to current selection without internal disclosure.
-- [ ] Client values never become authoritative for package terms, interval, calendar, capacity, status, revision, or snapshot.
-- [ ] Retry/double-submission/timeout behavior follows the idempotency contract without automatically generating a second intent after an unknown outcome.
-- [ ] Success response is minimal and contextual, creates no general public booking reader, and does not use internal `bookingId` as public access.
-- [ ] PII is absent from URLs, analytics, raw logs, diagnostics, and public status output; browser-data risks and safe rendering are addressed.
-- [ ] Abuse controls, differentiated rate limits, CSRF analysis, accessibility, and implementation gates are specified without technology choices.
+- [ ] Review reconciles current authoritative material terms, minimizes CPF/contact/address display, and is invalidated by every material customer-data, package, schedule, mode, address, or payment-intention change before explicit confirmation.
+- [ ] Stale package terms and selected availability clearly require acknowledgement/review of current state; stale calendar and capacity outcomes are distinct where useful and safely lead to current selection without internal disclosure.
+- [ ] Client values never become authoritative for package terms, interval, calendar, capacity, status, revision, or snapshot; final confirmation retains `booking-lifecycle` revalidation authority.
+- [ ] Retry/double-submission/timeout behavior resolves the same submitted intent, recovers an authoritative prior confirmation when present, and does not create a replacement intent until prior outcome resolution; material post-submission changes require a deliberate new attempt.
+- [ ] Success response is minimal and contextual, avoids unnecessary sensitive PII, creates no general public booking reader, and does not use internal `bookingId` as public access.
+- [ ] Raw booking PII is absent from application-controlled durable browser storage by default, URLs/referrers, analytics, raw logs, diagnostics, and public status output; cache, third-party-resource, browser-history, autofill, and shared-device constraints are addressed without selecting mechanisms.
+- [ ] Public availability reveals only minimum customer-facing information, not capacity/resource/calendar/other-customer internals; abuse controls use differentiated, non-IP-only rate limits without technology choices.
+- [ ] Accessibility and all implementation gates are specified without choosing implementation technology.
 
 ## Boundaries
 
 ### Always
 
-- Keep the flow unauthenticated and customer-account-free.
-- Treat every displayed term/date/time as advisory until authoritative confirmation.
+- Keep the flow unauthenticated and customer-account-free, and preserve the approved package-first sequence.
+- Treat every displayed term/date/time as advisory until authoritative confirmation; use package references only and re-evaluate availability after a package change.
 - Collect only approved data; apply pickup/address conditionality, payment-intention-only rules, privacy minimization, safe rendering, and synthetic non-production data.
-- Require review and explicit confirmation; preserve distinct stale/capacity/retry outcomes.
-- Apply public abuse controls and rate limiting without leaking bookings/capacity.
+- Reconcile current authoritative terms before review; invalidate review after material changes; require explicit confirmation and preserve distinct stale/capacity/retry outcomes.
+- Keep raw booking PII out of application-controlled durable browser storage by default and out of URLs/referrers/logs/analytics; require future cache and third-party-resource controls for sensitive pages.
+- Apply differentiated public abuse controls and rate limiting without leaking bookings/capacity.
 - Preserve domain-module authority and complete implementation gates before final production confirmation flow.
 
 ### Ask First
 
-- Materially reordering the approved customer flow, including package selection before time discovery for package-specific availability.
-- Defining supported payment-method values, public projection detail, confirmation response fields, sensitive-data masking/autofill/history behavior, or customer-facing stale/retry wording.
-- Selecting session/CSRF/CAPTCHA/analytics/idempotency/capacity/framework/database/ORM/cloud/notification/tracking technology.
+- Materially reordering the approved customer flow.
+- Defining supported payment-method values, public projection/availability detail, confirmation response fields, sensitive-data masking/autofill/history/cache/shared-device behavior, or customer-facing stale/retry wording.
+- Selecting session/browser-storage/CSRF/CAPTCHA/analytics/idempotency/capacity/cache/framework/database/ORM/cloud/notification/tracking technology.
 
 ### Never
 
 - Create a customer account, signup, password flow, profile, social login, general public booking reader, or public status credential in this module.
-- Treat client-submitted price/currency/duration/revision/snapshot/end time/eligibility/capacity/status as authoritative or imply a selection reserves capacity.
-- Confirm a booking without explicit final action, renewed review of stale terms, or booking-lifecycle authority.
-- Collect payment credentials, retain pickup address for drop-off, expose PII/internal details/capacity state in public errors, or put PII in URLs/analytics/raw logs.
-- Automatically generate a new confirmation intent after an unknown outcome or choose an implementation technology.
+- Treat client-submitted price/currency/duration/revision/snapshot/end time/eligibility/capacity/status as authoritative, imply a selection reserves capacity, or introduce temporary holds.
+- Confirm a booking without explicit final action, renewed review of stale terms, review after material changes, or `booking-lifecycle` authority.
+- Collect payment credentials; retain, persist, or submit pickup address for drop-off; expose PII/internal details/capacity state in public errors; or put booking PII in application-controlled durable browser storage, URLs/referrers, analytics, or raw logs.
+- Generate a replacement confirmation intent after an unknown outcome before resolving the prior intent, or choose an implementation technology.
 
 ## Open questions requiring human approval
 
-1. Should package selection occur before final time availability discovery to support package-duration-specific availability, or should the approved sequence remain with advisory time selection until confirmation?
-2. What payment-method values are supported in MVP?
-3. What minimum fields may appear in the contextual successful confirmation response?
-4. What masking/redaction, autofill, history/cache, and shared-device behavior is appropriate for CPF, address, and contact data?
-5. What public availability/calendar detail should be exposed before final bookability is calculated?
-6. What customer-facing wording and recovery path should be used for stale terms, unavailable capacity, unknown outcomes, and idempotency conflicts?
-
+1. What intended payment-method values are supported in MVP?
+2. What minimum fields may appear in the contextual successful confirmation response?
+3. What detailed masking/redaction, autofill, and shared-device behavior is appropriate for CPF, address, and contact data?
+4. What exact public availability/calendar detail should be exposed before final bookability is calculated?
+5. What customer-facing wording and recovery path should be used for stale terms, unavailable capacity, unknown outcomes, and idempotency conflicts?
