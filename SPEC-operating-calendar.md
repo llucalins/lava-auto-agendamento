@@ -30,7 +30,7 @@ This specification defines:
 
 | Concept | Purpose and invariant |
 |---|---|
-| `businessTimezone` | One explicit named authoritative timezone with real timezone rules for all calendar interpretation. Customer browser timezone is never authoritative for opening hours. |
+| `businessTimezone` | Initial MVP configuration is the explicit named authoritative IANA timezone `America/Fortaleza`, with real timezone rules for all calendar interpretation. Customer browser timezone is never authoritative for opening hours. The configured timezone remains changeable only through the approved controlled migration boundary. |
 | `calendarRevision` | Server-controlled revision for the business calendar as a coherent rule set. It detects stale administrative changes and supports coherent current-state revalidation. Its representation is deferred. |
 | `weeklySchedule` | Default recurring operating windows keyed by local day of week. A local day may have zero, one, or multiple separate windows. |
 | `operatingWindow` | A local-time interval during which the business is normally open on a given local day. For MVP, it must not cross midnight. |
@@ -45,7 +45,7 @@ The calendar has no customer, vehicle, account, CPF, phone, email, address, lice
 - Calendar rules, dates, local day-of-week, opening windows, overrides, and eligibility evaluation must use one explicit named authoritative `businessTimezone` with real timezone rules, not merely a fixed UTC offset.
 - Customer browser timezone, device locale, and client-side date arithmetic are never authoritative for business opening hours.
 - The eventual implementation must use timezone-aware date/time semantics, preserve local-date meaning across timezone-rule/offset transitions, and explicitly handle ambiguous or nonexistent local times if the configured timezone experiences offset transitions.
-- The business timezone is a human decision that must be configured/approved before implementation. This specification does not silently choose a timezone.
+- Initial MVP configuration is `America/Fortaleza`, appropriate to initial deployment/use in Paraíba. It is a named IANA timezone, not a fixed UTC offset, and does not impose a city/location product requirement. The timezone remains configurable only under the controlled change boundary below.
 
 ## Recurring weekly schedule
 
@@ -148,11 +148,11 @@ This produces one resulting set of eligible calendar windows for the local date 
 - **Commands:** Not applicable. This specification defines a domain contract and creates no executable artifact.
 - **Project structure:** Deferred. No implementation layout is selected.
 - **Code style:** Not applicable. No application code or interface binding is selected.
-- **Testing and verification expectations:** Future implementation must verify recurring schedules; multiple daily windows; `CLOSED` and exceptional-opening overrides; full/partial temporary unavailability; half-open boundaries; invalid/overlapping configuration rejection; timezone behavior and offset-transition edge cases where applicable; authoritative server evaluation; stale customer selection; stale/concurrent administrative updates; coherent-revision revalidation; existing confirmed bookings overlapping a later calendar change; durable-audit failure behavior through future orchestration; safe public projections; and absence of PII. Tests and demos use synthetic data.
+- **Testing and verification expectations:** Future implementation must verify `America/Fortaleza` initial configuration; recurring schedules; multiple daily windows; `CLOSED` and exceptional-opening overrides; full/partial temporary unavailability; half-open boundaries; invalid/overlapping configuration rejection; timezone behavior and offset-transition edge cases where applicable; authoritative server evaluation; stale customer selection; stale/concurrent administrative updates; coherent-revision revalidation; existing confirmed bookings overlapping a later calendar change; durable-audit failure behavior through future orchestration; safe public projections; and absence of PII. Tests and demos use synthetic data.
 
 ## Acceptance criteria
 
-- [ ] One explicit named authoritative business timezone with real timezone rules is required; browser timezone is never authoritative, local-date meaning is preserved across rule/offset transitions, and offset-transition behavior is explicitly handled where applicable.
+- [ ] Initial MVP business timezone is the explicit named IANA timezone `America/Fortaleza`, with real timezone rules; browser timezone is never authoritative, local-date meaning is preserved across rule/offset transitions, and offset-transition behavior is explicitly handled where applicable.
 - [ ] Weekly recurring schedules support zero, one, or multiple local operating windows per day.
 - [ ] At most one date-specific override per local date completely replaces weekly rules as `CLOSED` or explicit exceptional windows; temporary unavailability is subtracted afterward according to the approved precedence model and never creates operating time.
 - [ ] Holidays affect availability only through approved business configuration; no automatic holiday inference/provider is used.
@@ -181,7 +181,6 @@ This produces one resulting set of eligible calendar windows for the local date 
 
 ### Ask First
 
-- Approving the business timezone.
 - Defining public calendar projection detail, internal notes/reasons and their authorization boundary, or inactive/temporary-unavailability management workflow.
 - Choosing revision representation, concurrency, persistence, transaction, cache, queue, calendar/timezone library, framework, database, ORM, cloud, slot-generation, or capacity mechanism.
 - Defining a workflow to resolve calendar conflicts with already-confirmed bookings.
@@ -198,7 +197,6 @@ This produces one resulting set of eligible calendar windows for the local date 
 
 ## Open questions requiring human approval
 
-1. What is the authoritative business timezone?
-2. What public calendar/availability detail should be shown before final booking availability is calculated?
-3. What workflow and authority resolve a closure/unavailability conflict with an already-confirmed booking?
-4. Are internal reasons/notes required for calendar blocks, and who may see them?
+1. What public calendar/availability detail should be shown before final booking availability is calculated?
+2. What workflow and authority resolve a closure/unavailability conflict with an already-confirmed booking?
+3. Are internal reasons/notes required for calendar blocks, and who may see them?

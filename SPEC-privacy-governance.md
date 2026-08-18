@@ -14,7 +14,7 @@ Define the cross-cutting privacy and data-handling policy for the car-wash sched
 
 1. This specification defines product and engineering policy, not legal advice or a determination of regulatory compliance.
 2. CPF, address, phone, email, licence plate, customer name, and vehicle details are treated as PII for the product's protection and minimization rules.
-3. No retention period, legal basis, consent requirement, or statutory compliance obligation is assumed here.
+3. Approved product/security retention decisions are stated below. This specification does not assume a legal basis, consent requirement, statutory compliance obligation, or fiscal retention schedule.
 4. The system does not process or store payment credentials, banking credentials, PIX credentials, or payment secrets.
 5. Framework, database, hosting, authentication mechanism, backup technology, analytics provider, notification provider, and encryption implementation remain undecided.
 
@@ -39,14 +39,14 @@ Labels such as **High-risk PII** in this document are internal engineering risk 
 | Data category | Classification | Operational purpose | Collection rule | Exposure rule |
 |---|---|---|---|---|
 | Full name | PII | Identify the customer for the booked service and operational communication | Required only when creating a booking | Never public; administrative access only when operationally necessary |
-| CPF | High-risk PII | Current confirmed MVP customer data requirement; its business necessity remains an open privacy/legal question | Collect as part of MVP booking customer data; do not reuse for unrelated purposes | Never public; tightly restricted administrative access |
+| CPF | High-risk PII (internal engineering/security classification); ordinary personal data under LGPD, not statutory sensitive personal data | Explicit MVP business requirement for booking; concrete purpose, lawful basis, necessity/proportionality, and transparency obligations must be documented before production CPF storage is finalized | Collect in the approved personal-data booking step, after package/date/time selection; do not reuse for unrelated purposes | Never public; tightly restricted administrative access |
 | Phone / WhatsApp | PII | Service-related operational contact and future approved notifications | Collect for the booking contact purpose; do not use for unrelated outreach | Never public; limited operational access |
 | Email | PII | Optional service-related contact and future approved notifications | Collect only when supplied by the customer | Never public; limited operational access |
 | Pickup address | High-risk PII | Vehicle pickup when the customer selects pickup | Collect only when pickup is selected | Never public; access only to staff who need it to perform pickup operations |
 | Vehicle model and colour | PII-linked operational data | Identify the vehicle and perform the service | Collect only for the booking/service | Never public; operational access only |
 | Licence plate | High-risk PII-linked operational data | Identify the vehicle for the booking/service | Collect only for the booking/service | Never public; tightly restricted operational access |
 | Intended payment method | Operational data | Prepare the handoff/collection process; not a payment instrument | Collect only as an intended method | Never public; operational access only |
-| Public tracking token | Secret access credential, not display data | Allow status-minimum tracking without customer login | Generate only for a confirmed booking | Never expose in logs, analytics, audit events, errors, or public response payloads; do not expose internal IDs through it |
+| Public tracking token | Secret access credential, not display data | Allow status-minimum tracking without customer login | Generate only for a confirmed booking; retain operational access during active booking status and expire 7 days after `COMPLETED`/`CANCELLED`, subject to earlier revocation/replacement | Never expose in logs, analytics, audit events, errors, or public response payloads; do not expose internal IDs through it |
 | Administrative identity, session, and permissions | Security-sensitive PII/credential data | Authenticate and authorize staff | Collect only as required for administration | Never public; restricted to the relevant security boundary |
 | Audit event identifiers | Minimized security data | Accountability for sensitive actions | Store only minimized actor/target identifiers and event metadata | Restricted to authorized review; never include raw high-risk PII or credentials |
 
@@ -56,9 +56,10 @@ Labels such as **High-risk PII** in this document are internal engineering risk 
 - Do not collect optional data merely because it may be useful later.
 - Address is conditional: it is collected only after pickup is selected.
 - Email is conditional: it is collected only when provided by the customer.
-- CPF is a current confirmed MVP customer-data requirement and must not be silently removed, made optional, or repurposed by this specification.
-- Whether CPF collection is necessary for the stated business purpose, which Brazilian privacy/legal requirements apply, and whether a less sensitive identifier could meet the same need are open questions. They must be verified later through `source-driven-development` using current official Brazilian sources before CPF storage implementation is finalized.
-- If that verification recommends removing CPF, the confirmed intent and this specification must be updated explicitly and approved by the human before implementation.
+- CPF is a current confirmed MVP business requirement and must not be silently removed, made optional, or repurposed by this specification. Official-source verification did not establish a universal Brazilian legal/fiscal requirement to collect CPF when booking a car-wash service; this product requirement is not itself a lawful basis.
+- CPF is personal data under LGPD and is not statutory sensitive personal data under the LGPD art. 5 sensitive-data list. The High-risk PII label is an internal engineering/security classification, not a statutory classification.
+- Before production CPF storage is finalized, the controller must document the concrete collection purpose, applicable lawful basis for that purpose, why collection is necessary and proportionate, and applicable transparency/information obligations. Do not presume consent, contract necessity, legal obligation, or legitimate interest without concrete supporting business context.
+- Do not claim that invoice issuance universally requires CPF at booking time. Any fiscal-document retention or processing purpose must be separately established from applicable official requirements.
 - Do not collect payment credentials, banking credentials, PIX credentials, or payment secrets.
 - User-facing collection should clearly distinguish required information from optional information and from conditional pickup information.
 - Future modules must validate and constrain incoming data at their system boundaries, but this policy does not prescribe a validation library or implementation.
@@ -79,7 +80,7 @@ Labels such as **High-risk PII** in this document are internal engineering risk 
 - Public responses must never include CPF, full address, phone, email, full vehicle details beyond what is demonstrably necessary, administrative notes, credentials, audit data, or internal identifiers.
 - Public tracking uses a cryptographically random, high-entropy, non-enumerable token; it must not embed, expose, or derive internal IDs.
 - The public tracking token must never appear in logs, analytics, audit events, telemetry, or error responses.
-- Expiration, revocation, replacement behavior, and the assessment of one-way token-digest storage are required decisions for the `public-status-tracking` specification.
+- Revocation, replacement behavior, and one-way token-digest storage remain `public-status-tracking` decisions. The approved lifecycle retains operational access during active booking status and expires 7 days after an authoritative `COMPLETED`/`CANCELLED` transition, subject to earlier invalidation.
 
 ## Administrative exposure rules
 
@@ -116,10 +117,12 @@ Labels such as **High-risk PII** in this document are internal engineering risk 
 
 ## Retention and deletion principles
 
-- Every PII category must have a defined retention purpose and a future-approved retention rule before production use.
-- Retain PII no longer than necessary for its approved operational purpose, subject to any later verified legal or business requirement.
+- Every PII category must have a defined retention purpose and approved retention rule before production use.
+- For `SCHEDULED` and `IN_PROGRESS` bookings, retain personal data required to deliver the service. For `COMPLETED` and `CANCELLED` bookings, retain operational booking PII for 12 months after the booking becomes terminal.
+- After that 12-month operational period, delete or irreversibly anonymize operational PII with no separate valid retention purpose. A fiscal-document obligation is a separate purpose and lifecycle: retain only data actually required for that obligation and do not treat a fiscal period as automatic authorization to retain the complete operational booking record. The exact fiscal retention rule remains subject to applicable official requirements.
+- Retain minimized audit records for 24 months as an approved product/security retention decision, not as a claimed universal statutory LGPD period.
 - Deletion must address primary records and relevant copies in backups, caches, analytics, logs, and approved third parties according to their documented lifecycle.
-- Deletion, anonymization, archival, and exceptions must be specified before implementation; this document does not invent their timing or legal conditions.
+- Deletion, anonymization, archival, and exceptions must be implemented according to these approved operational rules and any separately established fiscal/legal obligation; this document does not invent fiscal timing or legal conditions.
 
 ## Future notification providers
 
@@ -156,15 +159,16 @@ Labels such as **High-risk PII** in this document are internal engineering risk 
 
 - [ ] The policy remains cross-cutting and creates no runtime/software dependency from domain modules to `privacy-governance`.
 - [ ] Every listed PII category has a documented operational purpose, collection condition, and exposure rule.
-- [ ] CPF remains a current confirmed MVP customer-data requirement; address is collected only for pickup and email only when supplied.
-- [ ] CPF necessity, applicable Brazilian privacy/legal requirements, and a less-sensitive-identifier alternative are marked for later `source-driven-development` verification using current official Brazilian sources before CPF storage implementation is finalized.
+- [ ] CPF remains a current confirmed MVP business requirement; it is ordinary personal data under LGPD but High-risk PII under this internal policy; address is collected only for pickup and email only when supplied.
+- [ ] Before production CPF storage is finalized, the controller documents concrete purpose, lawful basis, necessity/proportionality, and transparency obligations; the product requirement is not represented as a universal legal/fiscal booking requirement.
 - [ ] Public views expose status-minimum or booking-flow-minimum information and never expose internal IDs, CPF, full address, contacts, administrative data, or credentials.
-- [ ] The public token is high-entropy, non-enumerable, never logged, and has deferred-but-required expiry, revocation, and digest-storage decisions.
+- [ ] The public token is high-entropy, non-enumerable, never logged, expires 7 days after authoritative `COMPLETED`/`CANCELLED` transition, and retains required revocation/replacement/digest-storage decisions.
 - [ ] Administrative access follows least privilege, with restricted access to CPF and pickup address.
 - [ ] Logs, analytics, telemetry, error reporting, and audit records exclude prohibited PII, tokens, credentials, and unnecessary data.
 - [ ] Audit records use minimized identifiers and do not duplicate raw high-risk PII.
 - [ ] Backups, caches, analytics, and future providers are included in the retention/deletion and duplication boundaries.
-- [ ] PII is deleted or anonymized from active systems according to approved policy; immutable backup archives have a finite documented lifecycle, expired backups are securely removed, and deletions/anonymizations are reapplied after an older backup restoration before normal operation resumes.
+- [ ] Active-booking PII is retained only to deliver service; terminal operational booking PII is deleted or irreversibly anonymized after 12 months unless a separate valid purpose applies; fiscal retention is field-minimized and does not preserve complete operational booking PII by default.
+- [ ] Immutable backup archives have a finite documented lifecycle, expired backups are securely removed, and deletions/anonymizations are reapplied after an older backup restoration before normal operation resumes.
 - [ ] Production PII is not used in local development, test, demo, CI, or staging by default; tests and demos use synthetic data, and exceptions follow the approval, minimization, access, and deletion rules.
 - [ ] The future `public-status-tracking` specification threat-models leakage via browser history, `Referer`, proxies, CDN/access logs, caches, monitoring, third parties, and copied URLs, and evaluates the specified control categories.
 - [ ] No payment credentials, banking credentials, PIX credentials, or payment secrets are collected or stored.
@@ -177,15 +181,15 @@ Labels such as **High-risk PII** in this document are internal engineering risk 
 - Apply data minimization, purpose limitation, least privilege, explicit field exposure, and sanitized error/telemetry rules.
 - Treat public tracking tokens, sessions, credentials, CPF, addresses, and unnecessary PII as prohibited from logs and analytics.
 - Preserve privacy policy as a cross-cutting constraint rather than a runtime dependency.
-- Require a documented purpose and lifecycle for every new PII category or copy.
+- Require a documented purpose, lawful basis where applicable, and lifecycle for every new PII category or copy; finalize CPF production storage only after its approved documentation gate.
 - When a privacy principle conflicts with a confirmed product requirement, stop and surface the conflict. Do not resolve it implicitly.
 - Use synthetic data for tests and demos; do not copy production PII to non-production environments by default.
 
 ### Ask First
 
-- Changing the confirmed MVP CPF requirement, or using CPF for a new purpose.
+- Changing the confirmed MVP CPF requirement, its approved booking purpose, or using CPF for a new purpose.
 - Adding a new category of PII, external provider, analytics/support integration, export, or PII-bearing cache/replica.
-- Defining retention, deletion exceptions, archival, legal basis, consent, or compliance obligations.
+- Defining fiscal retention, deletion exceptions, archival, a CPF lawful basis without concrete context, consent, or compliance obligations.
 - Granting broader access to CPF, address, or bulk customer data.
 - Selecting technology that materially changes the privacy or backup boundary.
 - Using production-derived data in local development, test, demo, CI, or staging.
@@ -202,12 +206,10 @@ Labels such as **High-risk PII** in this document are internal engineering risk 
 
 ## Open questions requiring human approval or later source-driven verification
 
-1. Is collecting CPF actually necessary for the stated business purpose? What lawful basis or applicable Brazilian privacy requirements apply, and could a less sensitive identifier satisfy the same operational need? This must be verified later through `source-driven-development` using current official Brazilian sources before CPF storage implementation is finalized. If verification recommends removing CPF, the confirmed intent and this specification must be explicitly updated and approved by the human before implementation.
-2. What business retention periods are desired for completed/cancelled booking data and for administrative records, independent of legal requirements?
-3. Which deletion outcomes are required by the business: deletion, anonymization, archival, or a combination?
-4. What staff roles require access to CPF and pickup address, and are there separate staff roles for pickup operations?
-5. What public status fields are the minimum useful information for a customer without exposing booking details?
-6. What expiration, revocation, and replacement policy should public tracking tokens follow?
-7. Should future notifications be opt-in, transactional-only, or subject to another customer-choice model? Any legal/privacy requirement must be verified against current official Brazilian sources before it is adopted.
-8. Which analytics, support, hosting, backup, and notification vendors—if any—will be considered? Their data boundaries require separate approval.
-9. Which Brazilian legal requirements, including retention, legal basis, consent, data-subject rights, breach handling, and processor obligations, apply to this business? This requires later source-driven verification against current official guidance.
+1. What concrete purpose, lawful basis, necessity/proportionality rationale, and transparency/information obligations support mandatory CPF collection before production CPF storage is finalized? This must be documented from actual business/fiscal context; do not presume universal legal/fiscal necessity.
+2. What exact fiscal retention requirements apply to this business and which minimum fiscal fields do they require, separately from the approved 12-month terminal operational-PII period?
+3. What staff roles require access to CPF and pickup address, and are there separate staff roles for pickup operations?
+4. What administrative replacement assurance and verifier/digest retention policy should public tracking tokens follow beyond the approved terminal expiry?
+5. Should future notifications be opt-in, transactional-only, or subject to another customer-choice model? Any legal/privacy requirement must be verified against current official Brazilian sources before it is adopted.
+6. Which analytics, support, hosting, backup, and notification vendors—if any—will be considered? Their data boundaries require separate approval.
+7. Which Brazilian legal requirements, including fiscal retention, consent where applicable, data-subject rights, breach handling, and processor obligations, apply to this business? This requires later source-driven verification against current official guidance.

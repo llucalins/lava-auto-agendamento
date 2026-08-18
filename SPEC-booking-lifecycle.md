@@ -35,7 +35,7 @@ This specification defines:
 | vehicle information | Vehicle model, licence plate, and colour. |
 | `serviceMode` | `DROP_OFF` or `PICKUP_REQUESTED`. |
 | pickup address | Required only for `PICKUP_REQUESTED`; absent/not retained for `DROP_OFF`. |
-| intended payment method | Operational payment intention only; supported values remain a product decision. |
+| intended payment method | Operational payment intention only; authoritative MVP allowlist is `PIX`, `CASH`, `CREDIT_CARD`, and `DEBIT_CARD`. It is not proof that payment occurred. |
 | package snapshot | Immutable confirmed package contract defined below. |
 | service interval | One coherent authoritative `[start, end)` interval in the business timezone. |
 | status | `SCHEDULED`, `IN_PROGRESS`, `COMPLETED`, or `CANCELLED`. |
@@ -45,11 +45,11 @@ The aggregate must not contain card credentials, CVV, bank credentials, PIX secr
 ## Customer, vehicle, pickup, and payment-intention data
 
 - Current confirmed MVP booking data is full name, phone/WhatsApp, CPF, optional email, vehicle model, licence plate, and vehicle colour.
-- CPF remains a confirmed MVP product requirement. Before CPF storage implementation is finalized, `source-driven-development` using current official Brazilian sources must verify its business necessity, applicable privacy/legal requirements, and whether a less sensitive identifier can satisfy the purpose. This specification makes no legal claim and does not silently remove CPF.
+- CPF remains a confirmed MVP business requirement. Official-source verification did not establish a universal Brazilian legal/fiscal need to collect CPF at booking; it is ordinary personal data under LGPD and an internal high-risk PII classification, not statutory sensitive personal data. Before production CPF storage is finalized, the controller must document concrete purpose, lawful basis, necessity/proportionality, and transparency obligations. This specification does not presume consent, contract necessity, legal obligation, or legitimate interest without concrete supporting business context, and does not silently remove CPF.
 - `DROP_OFF` requires no pickup address; unnecessary pickup-address data must not be retained.
 - `PICKUP_REQUESTED` requires a valid pickup address before confirmation.
 - This module does not add geocoding, maps, routing, distance pricing, pickup zones, or other pickup logic.
-- Intended payment method records only customer intent; it is not proof of payment and does not initiate a payment. Supported method values require a human product decision. Once approved, the server validates the value against an explicit allowlist/domain set and rejects arbitrary free-form payment-method values.
+- Intended payment method records only customer intent; it is not proof of payment and does not initiate a payment. The server validates only `PIX`, `CASH`, `CREDIT_CARD`, or `DEBIT_CARD` and rejects arbitrary free-form values. The system does not process online payments, integrate a payment gateway, or collect/store card number, CVV, banking credentials, PIX secrets/tokens, or payment credentials.
 
 ## Authoritative package terms and immutable confirmed snapshot
 
@@ -77,8 +77,9 @@ The aggregate must not contain card credentials, CVV, bank credentials, PIX secr
 ## Availability and capacity abstraction
 
 - Calendar eligibility is necessary but not sufficient for final bookability.
-- A future authoritative capacity/resource rule determines whether a proposed service interval may be accepted after considering existing confirmed/in-progress bookings and permitted resource use.
-- The rule may permit one or multiple concurrent services/resources. This specification does not assume capacity equals one, one booking per start time, one washing bay, a fixed employee count, or fixed slot increments.
+- The initial authoritative MVP capacity policy is `N = 1`: at most one vehicle may occupy an authoritative service interval at any instant after considering existing confirmed/in-progress bookings. It is not one booking per fixed time slot, one washing bay, a fixed slot increment, or an architectural hard-coded constant.
+- Availability continues to combine authoritative package duration, operating-calendar eligibility, existing service intervals, and capacity. Under approved half-open `[start, end)` intervals, back-to-back bookings are valid when one interval ends exactly as another begins.
+- The capacity/resource abstraction remains extensible: a later approved change to `N > 1` or resource-based capacity must not require redefining booking semantics.
 - `booking-lifecycle` must enforce the same confirmation invariant regardless of the eventual allowed capacity `N`.
 
 ## Booking creation and atomic confirmation invariant
@@ -153,10 +154,12 @@ The approved normal MVP transition model is:
 
 - Apply `SPEC-privacy-governance.md`: collect/store PII only for stated booking/service purposes, require explicit field projections for future consumers, and avoid duplication into unrelated modules.
 - Pickup address exists only for pickup bookings; email remains optional.
+- Retain PII for `SCHEDULED`/`IN_PROGRESS` bookings only as required to deliver the service. Retain operational PII for `COMPLETED`/`CANCELLED` bookings for 12 months after the terminal transition, then delete or irreversibly anonymize PII with no separate valid retention purpose.
+- Fiscal documents/data with a separate legal retention obligation have a distinct purpose and lifecycle; retain only the fields actually required for that obligation and do not preserve complete operational booking PII merely because a fiscal period is longer. Exact fiscal retention remains subject to applicable official requirements.
 - No customer PII is allowed in logs, telemetry, analytics, error details, or audit events. General public projections and `public-status-tracking` must not expose booking PII.
 - A later `public-booking-flow` specification may define a minimal customer-facing confirmation response within the booking interaction, subject to `privacy-governance` and without creating a general public lookup capability. This specification does not design that response.
 - Production PII must not be copied to local development, test, demo, CI, or staging by default. Tests/demos use synthetic data; exceptions follow the approved governance process.
-- Retention/deletion timing remains unresolved and must follow approved privacy policy rather than being invented here.
+- This approved operational retention policy does not assert a fiscal/legal retention duration; its separate applicability must be verified before it is relied upon.
 
 ## Audit classification and boundary
 
@@ -176,12 +179,7 @@ The approved normal MVP transition model is:
 
 ## Implementation gates
 
-Authoritative booking-confirmation implementation must not silently choose missing product configuration. Before it can be considered complete:
-
-- The authoritative capacity/resource policy must be approved.
-- The actual authoritative business timezone must be supplied by approved `operating-calendar` configuration; capacity must never default to one and timezone must never be inferred from client or environment.
-- Supported MVP intended payment-method values must be approved.
-- The CPF `source-driven-development` verification required by `privacy-governance` must be completed before CPF storage implementation is finalized.
+Authoritative booking-confirmation implementation must preserve the approved configuration: `America/Fortaleza` is the business timezone; initial capacity is `N = 1` without hard-coding that abstraction; and intended payment methods are the approved allowlist. Before production CPF storage is finalized, the controller must complete the approved CPF documentation gate for concrete purpose, lawful basis, necessity/proportionality, and transparency obligations.
 
 ## Technology, commands, project structure, code style, and testing
 
@@ -189,7 +187,7 @@ Authoritative booking-confirmation implementation must not silently choose missi
 - **Commands:** Not applicable. This specification defines domain invariants and creates no executable artifact.
 - **Project structure:** Deferred. No implementation layout is selected.
 - **Code style:** Not applicable. No application code or interface binding is selected.
-- **Testing and verification expectations:** Future implementation must verify authoritative package resolution; stale price/duration/name/description behavior; inactive-package rejection; immutable snapshot; exact BRL monetary handling; conditional pickup address; optional email; payment-intention-only rules; calendar revalidation; `[start, end)` boundaries; concurrent confirmation; capacity-`N` enforcement without hardcoding `N`; double-booking prevention; retry/idempotency; partial-failure recovery/no partial confirmation; allowed/denied status transitions; stale concurrent status mutations; cancellation preservation; PII/log/audit restrictions; durable-audit failure behavior; and synthetic-data-only non-production testing.
+- **Testing and verification expectations:** Future implementation must verify authoritative package resolution; stale price/duration/name/description behavior; inactive-package rejection; immutable snapshot; exact BRL monetary handling; conditional pickup address; optional email; allowlisted intended-payment methods without payment processing/credentials; calendar revalidation in `America/Fortaleza`; `[start, end)` boundaries; initial `N = 1` enforcement, valid back-to-back intervals, and capacity abstraction extensibility; double-booking prevention; retry/idempotency; partial-failure recovery/no partial confirmation; allowed/denied status transitions; stale concurrent status mutations; cancellation preservation; approved terminal PII retention/anonymization and separate fiscal purpose; PII/log/audit restrictions; durable-audit failure behavior; and synthetic-data-only non-production testing.
 
 ## Acceptance criteria
 
@@ -203,10 +201,10 @@ Authoritative booking-confirmation implementation must not silently choose missi
 - [ ] The approved normal MVP status transition model is enforced server-side; `IN_PROGRESS → CANCELLED`, terminal reopening, backward transitions, and correction are excluded absent a separate authorized workflow; stale/concurrent mutations cannot cause impossible transitions or silent lost updates.
 - [ ] Cancellation preserves history/snapshot and confirmed booking modifications require a separate revalidated workflow.
 - [ ] A successful scheduled cancellation releases future bookable capacity only after authoritative commitment; failed/requested cancellation retains capacity, and cancellation/new-confirmation concurrency cannot cause contradictory or over-capacity outcomes.
-- [ ] PII is minimized, field-projected, excluded from logs/telemetry/audit and general public/status-tracking projections, and excluded from non-production by default; a minimal in-interaction customer confirmation response remains available for future public-booking-flow specification; CPF remains subject to the approved later source-driven gate.
+- [ ] PII is minimized, field-projected, excluded from logs/telemetry/audit and general public/status-tracking projections, and excluded from non-production by default; terminal operational PII follows the approved 12-month policy and fiscal retention is separate/minimized; a minimal in-interaction customer confirmation response remains available for future public-booking-flow specification; CPF production storage remains subject to its approved documentation gate.
 - [ ] Cancellation/status/sensitive-read audit handling follows `SPEC-audit-trail.md`; normal public booking creation does not require durable audit confirmation by default, while abuse/security signals remain minimized.
 - [ ] Successful confirmation uses one coherent authoritative package/calendar/capacity/interval/snapshot/status outcome with no mixed revision state, and later catalogue/calendar changes do not invalidate/rewrite it.
-- [ ] Implementation gates require approved capacity policy, approved business timezone configuration, payment-method values, and CPF source-driven verification before completion.
+- [ ] Implementation preserves `America/Fortaleza`, initial `N = 1` capacity without fixed slots/hard-coded semantics, and the approved payment allowlist; CPF production storage requires its approved concrete purpose/lawful-basis/necessity/transparency documentation gate.
 - [ ] No public general booking reader, tracking credential, fixed slot algorithm, capacity assumption, or technology choice is introduced.
 
 ## Boundaries
@@ -219,12 +217,12 @@ Authoritative booking-confirmation implementation must not silently choose missi
 - Make confirmation retry-safe, bind each intent to one canonical/material request, and prevent duplicate capacity consumption or contradictory intent outcomes.
 - Apply PII minimization, conditional pickup address, payment-intention-only rules, and synthetic data outside production.
 - Enforce approved normal status transitions, booking concurrency, cancellation-capacity, and approved audit requirements.
-- Require approved capacity policy, business timezone configuration, payment-method values, and CPF source-driven verification before finalizing confirmation implementation.
+- Preserve `America/Fortaleza`, the initial `N = 1` capacity policy without fixed slots/hard-coded semantics, and the approved payment allowlist; finalize production CPF storage only after its approved documentation gate.
 
 ### Ask First
 
-- Defining supported intended payment-method values, modification/rescheduling workflows, retention/deletion timing, or field projections beyond approved privacy rules.
-- Choosing capacity/resource policy, revision/idempotency/transaction/locking/queue/cache mechanism, framework, database, ORM, cloud, payment provider, or tracking-token mechanism.
+- Defining modification/rescheduling workflows, fiscal retention requirements, or field projections beyond approved privacy rules.
+- Changing the initial capacity policy or choosing a later capacity/resource policy; choosing revision/idempotency/transaction/locking/queue/cache mechanism, framework, database, ORM, cloud, payment provider, or tracking-token mechanism.
 
 ### Never
 
@@ -238,9 +236,7 @@ Authoritative booking-confirmation implementation must not silently choose missi
 
 ## Open questions requiring human approval
 
-1. What intended payment-method values are supported in MVP?
-2. What authoritative capacity/resource policy defines permitted concurrent services?
-3. What modification/rescheduling workflow applies to confirmed bookings?
-4. What retention/deletion timing applies to booking PII and records, subject to privacy-governance and later official-source verification where needed?
-5. What approved `operating-calendar` business timezone configuration applies before booking confirmation implementation is finalized?
-6. Does later CPF official-source verification confirm that CPF storage is necessary and appropriate for the stated business purpose, or require an explicitly human-approved update to confirmed intent/specification?
+1. What modification/rescheduling workflow applies to confirmed bookings?
+2. What exact fiscal retention requirements and minimum fiscal fields apply separately from the approved 12-month terminal operational-PII period?
+3. What concrete CPF purpose, lawful basis, necessity/proportionality rationale, and transparency obligations must be documented before production CPF storage is finalized?
+4. What later capacity/resource policy applies if the approved initial `N = 1` policy changes?

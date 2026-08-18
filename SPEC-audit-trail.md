@@ -147,8 +147,8 @@ Audit-of-audit events must use minimized actor/target/action/outcome information
 
 ## Retention, deletion, and backups
 
-- Audit records require a finite, documented retention lifecycle before production use. This specification does not invent a legal or business retention period.
-- Retention must account for the audit purpose, privacy minimization, backup lifecycle, access restriction, and any later verified legal or business requirement.
+- Minimized audit records are retained for 24 months. This is an approved product/security retention period, not a claimed universal statutory LGPD period.
+- Retention must account for the audit purpose, privacy minimization, backup lifecycle, access restriction, and any separately verified legal or business requirement.
 - Audit records must retain only the minimum identifiers and metadata needed for accountability; privacy deletion must not turn audit storage into a duplicate PII archive.
 - Where an approved deletion/anonymization policy affects a referenced resource, audit records should preserve accountability through minimized references and must not add raw PII to compensate.
 - Audit backups follow the approved backup-deletion semantics: active systems process deletion/anonymization according to policy; immutable backup archives may retain historic copies only within a finite documented lifecycle; expired backups are securely removed; and previously processed deletions/anonymizations are reapplied before an older restored system returns to normal operation.
@@ -217,7 +217,7 @@ For all classes, failures must be visible to authorized operations personnel thr
 - [ ] The architecture supplies append-only and tamper-detection/integrity protections without making a technology choice in this specification.
 - [ ] Audit-read access is explicitly authorized and more restricted than ordinary booking management.
 - [ ] Audit-record views, broad searches, approved exports, audit-reader permission changes, and integrity/tamper alerts have minimized audit coverage without recursively serializing audit payloads.
-- [ ] Retention, deletion, and backup rules are documented without invented legal periods; Brazilian legal questions are marked for later official-source verification.
+- [ ] Minimized audit records are retained for 24 months as an approved product/security policy, without claiming it is a universal legal period; separately applicable official legal requirements remain subject to verification.
 - [ ] Audit persistence unavailability follows the risk classification and does not silently default to fail-open or fail-closed.
 - [ ] Security-relevant fields are authoritative server-side values: actor identity is derived or verified from trusted context; action/category are allowlisted; outcome and timestamp are server-authoritative; client input cannot claim identity, privilege, success, or a security event.
 - [ ] Durable-confirmation operations cannot be reported successful without durable audit acceptance; `SUCCEEDED` cannot falsely represent an unapplied effect; uncertain crash/timeout paths have defined recovery; CPF/pickup-address values are not released before durable audit acceptance.
@@ -241,7 +241,7 @@ For all classes, failures must be visible to authorized operations personnel thr
 ### Ask First
 
 - Adding an event category, action, metadata field, correlation scheme, PII field, external audit/observability integration, or audit-data export.
-- Changing retention, deletion, backup, access, integrity, or failure-mode rules.
+- Changing the approved 24-month audit retention, backup, access, integrity, or failure-mode rules.
 - Allowing an operation that requires durable audit confirmation to proceed while auditing is degraded.
 - Changing the durable audit consistency, retry/replay/idempotency, causal-ordering, or audit-of-audit access rules.
 - Selecting storage, transport, queueing, monitoring, logging, cloud, or backup technology.
@@ -265,6 +265,6 @@ For all classes, failures must be visible to authorized operations personnel thr
 1. Which roles may read audit records, and what additional restriction or review applies to sensitive-read audit events?
 2. Are successful authentication/session issuance, account recovery, bulk sensitive-data export, and security-configuration changes appropriately classified as requiring later architecture approval, or should any be moved to durable audit confirmation?
 3. Which bounded, non-PII change descriptors—if any—are needed to make price, calendar, or status events operationally useful without storing record snapshots?
-4. What business retention period and deletion/anonymization treatment are appropriate for audit records and audit backups?
-5. Which Brazilian legal requirements affect audit retention, privacy, access, deletion, backup restoration, or evidence integrity? This requires later `source-driven-development` verification using current official Brazilian sources.
+4. What exact backup retention period and deletion/anonymization treatment apply to audit backups, consistent with the approved finite-backup-lifecycle rule?
+5. Which Brazilian legal requirements affect audit retention, privacy, access, deletion, backup restoration, or evidence integrity beyond the approved 24-month product/security period? This requires later `source-driven-development` verification using current official Brazilian sources.
 6. What integrity, recovery, ordering, idempotency, and replay guarantees are needed for the eventual audit architecture, especially during degraded persistence, uncertain outcomes, and restoration?

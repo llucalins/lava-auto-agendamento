@@ -13,7 +13,7 @@ Define a secure, unauthenticated status-minimum capability through which a custo
 1. The public tracking credential is an opaque, separate capability, not a customer account or a customer identity proof.
 2. `booking-lifecycle` remains the only authoritative source for booking status; this module creates no independently mutable public status copy.
 3. The approved MVP public projection is exactly the authoritative booking status only; any future public field requires a separately approved specification change.
-4. Credential expiry/grace duration, administrative replacement assurance, credential transport/session design, and exact cache/header controls are unresolved and must be selected later.
+4. Credential expiry is approved below; administrative replacement assurance, credential transport/session design, and exact cache/header controls remain unresolved.
 5. The capability is a single approved module in `CAPABILITY_MAP.md`; no new capability map or implementation plan is created.
 
 ## Scope
@@ -63,9 +63,9 @@ This specification defines the public tracking credential, narrowly scoped verif
 
 ## Credential lifecycle: expiration, revocation, replacement, and loss
 
-- Every credential has an explicit lifecycle, including expiration. Credentials are not permanent and must remain usable while the booking is operationally relevant unless revoked.
-- Expiration duration and terminal-state grace policy are human/business/security decisions. Access after `COMPLETED` or `CANCELLED`, if allowed, must be bounded by an explicit finite grace/expiry policy; indefinite reusable terminal-state access is prohibited.
-- `COMPLETED` and `CANCELLED` remain terminal booking states under `booking-lifecycle`; reaching a terminal state does not itself expose additional information or historic PII.
+- Every credential has an explicit lifecycle, including expiration. While status is `SCHEDULED` or `IN_PROGRESS`, the active credential remains operational unless revoked, replaced, or otherwise invalidated under this lifecycle.
+- On authoritative server-side terminal transition, a credential for `COMPLETED` expires 7 days after that transition and a credential for `CANCELLED` expires 7 days after that transition. Expiry is separate from booking deletion and PII retention; an expired credential no longer authorizes public tracking. Indefinite reusable terminal-state access is prohibited.
+- `COMPLETED` and `CANCELLED` remain terminal booking states under `booking-lifecycle`; reaching a terminal state does not itself expose additional information or historic PII. Revocation/replacement may terminate access earlier, and MVP still permits at most one active credential per booking.
 - The system must support revoking a credential without deleting, mutating, or changing the booking or its `bookingId`.
 - Replacement creates a new independent credential and invalidates the old credential. It must not rewrite booking history or change `bookingId`.
 - Issuance, replacement, and revocation require coherent authoritative lifecycle state. The eventual architecture must prevent two unintentionally active credentials, replacement reported successful while the old credential remains usable, a new credential returned without authoritative activation, or revocation reported successful while the credential remains valid.
@@ -155,7 +155,7 @@ The approved MVP public projection is exactly one authoritative field:
 - **Commands:** Not applicable. This specification defines a public capability contract and creates no executable artifact.
 - **Project structure:** Deferred. No implementation layout is selected.
 - **Code style:** Not applicable. No application code or interface binding is selected.
-- **Testing and verification expectations:** Future implementation must verify cryptographically strong unpredictable credential generation; `bookingId`/credential separation and non-enumerability; one-active-credential enforcement under concurrent issuance/replacement; rejection of PII-based access; server-side credential verification; generic invalid/malformed/nonexistent/expired/revoked/replaced behavior without response/redirect/timing/recovery oracles; lifecycle, finite terminal-state grace, revocation, replacement, and lost-credential policy; status-only field allowlist with no PII/internal identifiers; confirmation/issuance/delivery failure and ambiguous-outcome consistency; no raw credential in edge/CDN, proxy, load-balancer, WAF, application, audit, analytics, telemetry, monitoring, error, support, or backup capture; brute-force, rate-limit, and distributed-abuse considerations; shared/intermediary and private-browser cache evaluation; referrer/history/URL/proxy/CDN/log/screenshot/browser-sync leakage controls and post-verification URL removal; third-party-resource restrictions; confirmed-booking issuance only; no valid credential after failed booking confirmation; current authoritative status projection; revocation/replacement audit classification; and synthetic data only.
+- **Testing and verification expectations:** Future implementation must verify cryptographically strong unpredictable credential generation; `bookingId`/credential separation and non-enumerability; one-active-credential enforcement under concurrent issuance/replacement; rejection of PII-based access; server-side credential verification; generic invalid/malformed/nonexistent/expired/revoked/replaced behavior without response/redirect/timing/recovery oracles; operational access during `SCHEDULED`/`IN_PROGRESS`, authoritative 7-day expiry after `COMPLETED`/`CANCELLED`, and earlier revocation/replacement; status-only field allowlist with no PII/internal identifiers; confirmation/issuance/delivery failure and ambiguous-outcome consistency; no raw credential in edge/CDN, proxy, load-balancer, WAF, application, audit, analytics, telemetry, monitoring, error, support, or backup capture; brute-force, rate-limit, and distributed-abuse considerations; shared/intermediary and private-browser cache evaluation; referrer/history/URL/proxy/CDN/log/screenshot/browser-sync leakage controls and post-verification URL removal; third-party-resource restrictions; confirmed-booking issuance only; no valid credential after failed booking confirmation; current authoritative status projection; revocation/replacement audit classification; and synthetic data only.
 
 ## Acceptance criteria
 
@@ -163,7 +163,7 @@ The approved MVP public projection is exactly one authoritative field:
 - [ ] `bookingId`, CPF, phone, email, licence plate, customer name, and predictable combinations never act as public tracking credentials or alternate public authorization.
 - [ ] Credential verification is server-side and uses current credential lifecycle state; raw credential storage is evaluated against a digest/verifier-only preference, while raw at-rest storage requires explicit security justification and human approval.
 - [ ] MVP maintains at most one active credential per booking: concurrent issuance/replacement cannot create more; replacement invalidates the prior active credential; and `bookingId` and booking history remain unchanged.
-- [ ] A credential has explicit expiration, revocation, and replacement/rotation requirements; it remains usable while operationally relevant unless revoked; terminal access is finite; and public lost-credential recovery or lookup never uses PII as proof.
+- [ ] A credential remains operational during `SCHEDULED`/`IN_PROGRESS` unless invalidated, expires exactly 7 days after authoritative `COMPLETED` or `CANCELLED` transition, supports earlier revocation/replacement, and public lost-credential recovery or lookup never uses PII as proof.
 - [ ] Credential issuance/delivery cannot alter an already-confirmed booking; failed confirmation creates no credential; ambiguous issuance/delivery outcomes cannot create uncontrolled credentials; and unrecoverable raw-value delivery failure has a safe retry/replacement/recovery path.
 - [ ] The approved public response is an explicit status-only projection from current authoritative `booking-lifecycle` state and exposes exactly `SCHEDULED`, `IN_PROGRESS`, `COMPLETED`, or `CANCELLED`.
 - [ ] Public status access cannot modify or cancel a booking, read booking PII, read another booking, access administration, or access audit history.
@@ -182,14 +182,14 @@ The approved MVP public projection is exactly one authoritative field:
 - Treat `booking-lifecycle` as authoritative for current status and the server/security boundary as authoritative for credential lifecycle and verification.
 - Use explicit response-field allowlists; minimize internal references; keep PII, internal IDs, raw credentials, and security internals out of public responses, logs, audit, telemetry, analytics, and errors.
 - Maintain at most one active credential per booking and preserve coherent issuance, replacement, revocation, and delivery outcomes without altering a confirmed booking for tracking failure.
-- Require explicit finite expiration/grace, lost-credential administrative recovery assurance, and leakage/caching analysis before implementation.
+- Preserve the approved terminal-expiry policy; require lost-credential administrative recovery assurance and leakage/caching analysis before implementation.
 - Apply generic non-enumerating errors, bounded validation, and differentiated abuse controls without relying only on source IP.
 - Issue credentials only after authoritative confirmation and use synthetic data outside production.
 
 ### Ask First
 
 - Adding any public projection field beyond status, defining exact status wording, or changing terminal-state visibility.
-- Choosing credential expiry/grace duration, administrative replacement authority and recovery assurance, or lost-credential workflow.
+- Changing the approved credential expiry policy; choosing administrative replacement authority and recovery assurance or lost-credential workflow.
 - Selecting URL/transport/session/cache/referrer/log-redaction/third-party-resource mechanisms, token representation, entropy parameters, verifier/digest technique, storage, framework, database, ORM, CDN, analytics, cloud, or HTTP technology.
 - Allowing raw credential storage, PII sharing, a new tracking consumer, a tracking data copy, or a change to the approved audit failure classification.
 
@@ -204,8 +204,7 @@ The approved MVP public projection is exactly one authoritative field:
 
 ## Open questions requiring human approval
 
-1. What exact credential expiry/grace duration applies, including bounded access after `COMPLETED` or `CANCELLED`?
-2. What exact administrative assurance and authority are required for credential replacement after a lost credential, without using PII as public proof?
-3. Which final transport/bootstrap/session design best minimizes history, referrer, proxy/CDN/logging, copying, cache, and shared-device risks?
-4. What exact customer-facing wording and recovery behavior apply to invalid, expired, revoked, replaced, unavailable, and abuse-limited requests while preserving non-enumeration?
-5. What retention/deletion lifecycle applies to credential verifiers/digests and related minimized security signals, subject to `privacy-governance` and later official-source verification where appropriate?
+1. What exact administrative assurance and authority are required for credential replacement after a lost credential, without using PII as public proof?
+2. Which final transport/bootstrap/session design best minimizes history, referrer, proxy/CDN/logging, copying, cache, and shared-device risks?
+3. What exact customer-facing wording and recovery behavior apply to invalid, expired, revoked, replaced, unavailable, and abuse-limited requests while preserving non-enumeration?
+4. What retention/deletion lifecycle applies to credential verifiers/digests and related minimized security signals, subject to `privacy-governance` and later official-source verification where appropriate?

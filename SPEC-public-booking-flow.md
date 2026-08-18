@@ -43,6 +43,7 @@ This sequence is approved and is not an open question. Package selection precede
 - `service-catalog` supplies safe public projections of active packages. The public flow renders package name/description, displayed BRL price, and duration only as server-provided, non-authoritative display data.
 - The client may identify the selected package by reference. It must not provide authoritative package activation state, revision, price, currency, duration, end time, calendar eligibility, capacity calculation, or final availability decision.
 - After package selection, availability discovery must use that package reference. The server/domain boundary remains authoritative for package activation state and revision, price, currency, duration, calendar eligibility, and final capacity.
+- Initial authoritative capacity is `N = 1` concurrent service, evaluated over authoritative duration-based half-open intervals rather than fixed time slots. This remains server/domain policy: the public flow neither calculates nor discloses it, and a later capacity change must not alter the public flow's non-authoritative role.
 - `operating-calendar` may supply only minimum derived customer-facing availability information approved for this flow. Raw administrative calendar rules, blocked-period reasons, revisions, notes, internal resource use, and other customers' bookings are not public.
 - Package-specific availability must disclose only the minimum days/times needed for customer selection. It must not disclose bay count, staff count, capacity `N`, exact internal resource usage, other customers' bookings, internal calendar rules, or blocked-period reasons unless separately approved as public content.
 - A selected package change makes all previously selected date/time availability stale. The flow must re-evaluate it before review; it must not carry a prior selection forward as valid merely because the client still has it.
@@ -52,11 +53,11 @@ This sequence is approved and is not an open question. Package selection precede
 ## Customer, vehicle, service-mode, and payment-intention collection
 
 - Collect only full name, phone/WhatsApp, CPF, optional email, vehicle model, licence plate, and vehicle colour.
-- CPF remains a current MVP requirement and is subject to the approved official-source verification gate before CPF storage implementation is finalized. This flow makes no legal claim and does not remove CPF.
+- CPF remains a current MVP business requirement. It is collected in this personal-data step—after package/date/time selection—and is not claimed to be universally required by Brazilian law/fiscal rules. It is ordinary personal data under LGPD and an internal high-risk PII classification, not statutory sensitive personal data. Before production CPF storage is finalized, the controller must document concrete purpose, lawful basis, necessity/proportionality, and transparency obligations; this flow makes no legal claim and does not remove CPF.
 - `PICKUP_REQUESTED` requires pickup address before review/confirmation.
 - If the customer changes from `PICKUP_REQUESTED` to `DROP_OFF`, remove the pickup address from the material booking request/state. Do not persist or submit it to `booking-lifecycle`, or retain it as hidden booking data for convenience. Any temporary UI-memory behavior is an implementation decision that must comply with `privacy-governance`.
 - The flow selects only intended payment method. It must not collect/display card number, CVV, banking credentials, PIX secret/key credential, payment-provider token, or payment-provider credentials.
-- Supported MVP payment-method values are unresolved. Once approved, the public flow presents only the server-validated allowlisted/domain values from `booking-lifecycle`.
+- The authoritative MVP intended-payment-method values are `PIX`, `CASH`, `CREDIT_CARD`, and `DEBIT_CARD`. The public flow presents only those server-validated allowlisted/domain values; localized labels may be selected later.
 
 ## Review, invalidation, and explicit confirmation contract
 
@@ -151,7 +152,7 @@ Has no tracking-token, status-projection, URL, or lookup design in this module. 
 
 ## Implementation gates
 
-Before final production confirmation flow is complete, the authoritative capacity/resource policy must be approved, actual business timezone configured, intended payment-method values approved, and CPF official-source verification completed before CPF storage implementation is finalized. Capacity must never default to one.
+The production confirmation flow must preserve `America/Fortaleza` as authoritative business timezone, the initial `N = 1` capacity policy without exposing capacity or introducing fixed slots, and the approved intended-payment-method allowlist. Before production CPF storage is finalized, the controller must complete the approved concrete purpose/lawful-basis/necessity/transparency documentation gate.
 
 ## Technology, commands, project structure, code style, and testing
 
@@ -159,7 +160,7 @@ Before final production confirmation flow is complete, the authoritative capacit
 - **Commands:** Not applicable. This specification defines public orchestration requirements and creates no executable artifact.
 - **Project structure:** Deferred. No implementation layout is selected.
 - **Code style:** Not applicable. No application code or interface binding is selected.
-- **Testing and verification expectations:** Future implementation must verify the approved package-first happy path; active-package-only package-specific availability; package-change staleness; no client-authoritative duration/end-time/capacity calculation; required/optional/conditional fields; pickup-address requirement and removal when changing to drop-off; current authoritative review reconciliation; review invalidation for every material change; stale/inactive/duration-changed package and stale availability recovery; final package/calendar/capacity revalidation; double-click/retry/timeout recovery of one intent; idempotency conflict and deliberate new-attempt path; minimal contextual confirmation response; no internal ID public access; differentiated abuse/rate limits; CSRF invariant; XSS-safe rendering; no PII in durable browser storage, URLs/referrers/logs/analytics/errors; cache and shared-device considerations; third-party-resource boundary; accessibility; and synthetic test data.
+- **Testing and verification expectations:** Future implementation must verify the approved package-first happy path; `America/Fortaleza` business-time semantics; active-package-only package-specific availability; initial `N = 1` capacity without fixed slots or public capacity disclosure; package-change staleness; no client-authoritative duration/end-time/capacity calculation; required/optional/conditional fields; CPF collection after package/date/time selection and its documentation gate; allowlisted intended-payment values without payment credentials/processing; pickup-address requirement and removal when changing to drop-off; current authoritative review reconciliation; review invalidation for every material change; stale/inactive/duration-changed package and stale availability recovery; final package/calendar/capacity revalidation; double-click/retry/timeout recovery of one intent; idempotency conflict and deliberate new-attempt path; minimal contextual confirmation response; no internal ID public access; differentiated abuse/rate limits; CSRF invariant; XSS-safe rendering; no PII in durable browser storage, URLs/referrers/logs/analytics/errors; cache and shared-device considerations; third-party-resource boundary; accessibility; and synthetic test data.
 
 ## Acceptance criteria
 
@@ -174,7 +175,7 @@ Before final production confirmation flow is complete, the authoritative capacit
 - [ ] Success response is minimal and contextual, avoids unnecessary sensitive PII, creates no general public booking reader, and does not use internal `bookingId` as public access.
 - [ ] Raw booking PII is absent from application-controlled durable browser storage by default, URLs/referrers, analytics, raw logs, diagnostics, and public status output; cache, third-party-resource, browser-history, autofill, and shared-device constraints are addressed without selecting mechanisms.
 - [ ] Public availability reveals only minimum customer-facing information, not capacity/resource/calendar/other-customer internals; abuse controls use differentiated, non-IP-only rate limits without technology choices.
-- [ ] Accessibility and all implementation gates are specified without choosing implementation technology.
+- [ ] Accessibility and the approved timezone, initial capacity, payment, and CPF documentation gates are specified without choosing implementation technology.
 
 ## Boundaries
 
@@ -186,12 +187,12 @@ Before final production confirmation flow is complete, the authoritative capacit
 - Reconcile current authoritative terms before review; invalidate review after material changes; require explicit confirmation and preserve distinct stale/capacity/retry outcomes.
 - Keep raw booking PII out of application-controlled durable browser storage by default and out of URLs/referrers/logs/analytics; require future cache and third-party-resource controls for sensitive pages.
 - Apply differentiated public abuse controls and rate limiting without leaking bookings/capacity.
-- Preserve domain-module authority and complete implementation gates before final production confirmation flow.
+- Preserve domain-module authority, `America/Fortaleza`, initial `N = 1` capacity abstraction, approved payment allowlist, and the CPF documentation gate before final production confirmation flow.
 
 ### Ask First
 
 - Materially reordering the approved customer flow.
-- Defining supported payment-method values, public projection/availability detail, confirmation response fields, sensitive-data masking/autofill/history/cache/shared-device behavior, or customer-facing stale/retry wording.
+- Changing payment-method values, capacity policy, business timezone, public projection/availability detail, confirmation response fields, sensitive-data masking/autofill/history/cache/shared-device behavior, or customer-facing stale/retry wording.
 - Selecting session/browser-storage/CSRF/CAPTCHA/analytics/idempotency/capacity/cache/framework/database/ORM/cloud/notification/tracking technology.
 
 ### Never
@@ -204,8 +205,7 @@ Before final production confirmation flow is complete, the authoritative capacit
 
 ## Open questions requiring human approval
 
-1. What intended payment-method values are supported in MVP?
-2. What minimum fields may appear in the contextual successful confirmation response?
-3. What detailed masking/redaction, autofill, and shared-device behavior is appropriate for CPF, address, and contact data?
-4. What exact public availability/calendar detail should be exposed before final bookability is calculated?
-5. What customer-facing wording and recovery path should be used for stale terms, unavailable capacity, unknown outcomes, and idempotency conflicts?
+1. What minimum fields may appear in the contextual successful confirmation response?
+2. What detailed masking/redaction, autofill, and shared-device behavior is appropriate for CPF, address, and contact data?
+3. What exact public availability/calendar detail should be exposed before final bookability is calculated?
+4. What customer-facing wording and recovery path should be used for stale terms, unavailable capacity, unknown outcomes, and idempotency conflicts?
