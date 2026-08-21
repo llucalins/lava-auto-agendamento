@@ -7,10 +7,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 1: Record dependency and install-policy evidence
 **Description:** Verify Node LTS, manager, Next.js, pg, Zod, Vitest, Playwright, openid-client, and stable node-pg-migrate before install.
 **Acceptance criteria:**
-- [ ] Official version/provenance evidence and one lockfile policy exist.
-- [ ] Install scripts are fail-closed pending review.
+- [x] Official version/provenance evidence and one lockfile policy exist.
+- [x] Install scripts are fail-closed pending review.
 **Verification:**
-- [ ] Human reviews the evidence record.
+- [x] Human reviews the evidence record.
 **Dependencies:** None
 **Files likely touched:**
 - docs/dependency-review.md
