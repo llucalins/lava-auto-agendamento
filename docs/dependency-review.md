@@ -40,6 +40,25 @@ will choose the project manifest and lockfile after this record is reviewed.
    against the resulting lockfile; triage findings by reachability and fix
    risk rather than applying forced remediation.
 
+## Temporary ESLint tooling compatibility exception
+
+- ESLint 9.39.5 is EOL upstream: ESLint 10.x is Current, and the ESLint
+  project states that 9.x reached EOL on 2026-08-06 and receives no further
+  updates. [ESLint version support](https://eslint.org/version-support/)
+- It is retained temporarily as a development-tooling compatibility exception,
+  not an application runtime dependency exception. The current stable
+  `next@16.3.2` / `eslint-config-next@16.3.2` lint stack does not resolve
+  cleanly with ESLint 10 under normal npm peer resolution: its bundled
+  `eslint-plugin-react`, `eslint-plugin-import`, and `eslint-plugin-jsx-a11y`
+  peer ranges stop at ESLint 9. The version-matched Next.js configuration uses
+  `eslint-config-next/core-web-vitals` and `eslint-config-next/typescript`.
+  [Next.js ESLint configuration](https://nextjs.org/docs/app/api-reference/config/eslint)
+- No `--force`, `--legacy-peer-deps`, or peer-dependency override is used.
+  The project keeps `.npmrc` `ignore-scripts=true` active, and the current npm
+  production and full audits report zero known vulnerabilities.
+- Re-evaluate and migrate to a supported ESLint release as soon as the stable
+  Next.js lint stack permits normal peer resolution without forced overrides.
+
 ## Non-goals
 
 - No dependency versions are frozen here except the migration-tool release

@@ -23,10 +23,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 2: Bootstrap project and test tooling
 **Description:** Create pinned manager, Next.js TypeScript baseline, scripts, lockfile, gitignore, and empty Vitest/Playwright baseline.
 **Acceptance criteria:**
-- [ ] Lint/typecheck/build/unit/browser commands work on verified Node LTS.
-- [ ] One reviewed lockfile and no generated/secret artifacts are tracked.
+- [x] Lint/typecheck/build/unit/browser commands work on verified Node LTS.
+- [x] One reviewed lockfile and no generated/secret artifacts are tracked.
 **Verification:**
-- [ ] Run baseline lint, typecheck, build, Vitest, and Playwright.
+- [x] Run baseline lint, typecheck, build, Vitest, and Playwright.
 **Dependencies:** Task 1
 **Files likely touched:**
 - package.json

@@ -1,0 +1,34 @@
+{
+  "name": "lava-auto-agendamento",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "npm@11.17.0",
+  "engines": {
+    "node": "24.x",
+    "npm": "11.17.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:browser": "playwright test --pass-with-no-tests"
+  },
+  "dependencies": {
+    "next": "16.3.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/node": "24.10.0",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.2",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}
