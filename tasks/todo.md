@@ -42,10 +42,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 3: Add typed server configuration boundary
 **Description:** Add Zod environment schema, server/client separation, safe template, and secret/version exposure guard.
 **Acceptance criteria:**
-- [ ] Missing/malformed configuration fails before serving requests.
-- [ ] Secrets/key versions cannot enter client bundles or diagnostics.
+- [x] Missing/malformed configuration fails before serving requests.
+- [x] Secrets/key versions cannot enter client bundles or diagnostics.
 **Verification:**
-- [ ] Unit tests reject malformed configuration and inspect safe template.
+- [x] Unit tests reject malformed configuration and inspect safe template.
 **Dependencies:** Task 2
 **Files likely touched:**
 - src/server/shared/config.ts
@@ -57,7 +57,7 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - test-driven-development
 
 ## Checkpoint 1: Toolchain
-- [ ] Source review and baseline lint/typecheck/build/tests pass.
+- [x] Source review and baseline lint/typecheck/build/tests pass.
 
 ## Task 4: Establish pg transaction and integration-test harness
 **Description:** Add pool, same-client transaction helper, local isolated PostgreSQL connection, and integration-test harness.
