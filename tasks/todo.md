@@ -237,10 +237,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 14: Prove capacity concurrency
 **Description:** Prove concurrent allocation/confirmation contenders cannot exceed N=1.
 **Acceptance criteria:**
-- [ ] Two overlapping concurrent transactions cannot both commit.
-- [ ] Cancellation/new-confirmation race preserves capacity semantics.
+- [x] Two overlapping concurrent transactions cannot both commit.
+- [x] Cancellation/new-confirmation race preserves capacity semantics.
 **Verification:**
-- [ ] Real PostgreSQL concurrency suite passes.
+- [x] Real PostgreSQL concurrency suite passes.
 **Dependencies:** Task 13
 **Files likely touched:**
 - tests/integration/capacity-concurrency.test.ts
@@ -252,10 +252,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 15: Persist confirmation intent model
 **Description:** Add intent key, canonical material request fingerprint, outcome projection, conflict/replay recognition, and bounded retention metadata without raw canonical PII.
 **Acceptance criteria:**
-- [ ] Same key/material is recognizable and material mismatch conflicts.
-- [ ] Persisted metadata contains no raw customer request body and has lifecycle class.
+- [x] Same key/material is recognizable and material mismatch conflicts.
+- [x] Persisted metadata contains no raw customer request body and has lifecycle class.
 **Verification:**
-- [ ] Unit/PostgreSQL fingerprint/uniqueness/redaction tests pass.
+- [x] Unit/PostgreSQL fingerprint/uniqueness/redaction tests pass.
 **Dependencies:** Task 12
 **Files likely touched:**
 - database/migrations/*-confirmation-intents.ts
@@ -268,10 +268,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 16: Integrate atomic confirmation recovery
 **Description:** Use one PostgreSQL transaction to recover committed outcome before validation or revalidate, allocate, snapshot, create booking, and store outcome.
 **Acceptance criteria:**
-- [ ] Lost HTTP response/retry creates no duplicate allocation or booking.
-- [ ] Safe transaction retry uses no process-memory correctness state or PII body logging.
+- [x] Lost HTTP response/retry creates no duplicate allocation or booking.
+- [x] Safe transaction retry uses no process-memory correctness state or PII body logging.
 **Verification:**
-- [ ] Real PostgreSQL recovery/concurrency tests pass.
+- [x] Real PostgreSQL recovery/concurrency tests pass.
 **Dependencies:** Tasks 13, 15
 **Files likely touched:**
 - src/server/capabilities/booking-lifecycle/confirm.ts
@@ -283,7 +283,7 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - observability-and-instrumentation
 
 ## Checkpoint 6: Confirmation correctness
-- [ ] Capacity/idempotency/recovery PostgreSQL tests pass.
+- [x] Capacity/idempotency/recovery PostgreSQL tests pass.
 
 # Phase 3: Public booking vertical flow
 
