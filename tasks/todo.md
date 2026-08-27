@@ -290,10 +290,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 17: Deliver package/day/start booking UI
 **Description:** Deliver package-first package, day, and compatible-start selection with server revisions and stale invalidation.
 **Acceptance criteria:**
-- [ ] No client commercial/capacity authority or PII URL/storage.
-- [ ] Selection is browser-verifiable and stale-safe.
+- [x] No client commercial/capacity authority or PII URL/storage.
+- [x] Selection is browser-verifiable and stale-safe.
 **Verification:**
-- [ ] Playwright mobile selection test passes.
+- [x] Playwright mobile selection test passes.
 **Dependencies:** Task 16
 **Files likely touched:**
 - src/app/(public)/booking/page.tsx
@@ -306,10 +306,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 18: Deliver personal-data step
 **Description:** Add personal data entry after viable selection with safe boundary validation and ephemeral state.
 **Acceptance criteria:**
-- [ ] Required/optional fields are clear and no raw PII reaches URL/durable storage.
-- [ ] Safe validation errors do not echo sensitive values.
+- [x] Required/optional fields are clear and no raw PII reaches URL/durable storage.
+- [x] Safe validation errors do not echo sensitive values.
 **Verification:**
-- [ ] Browser and contract tests pass.
+- [x] Browser and contract tests pass.
 **Dependencies:** Task 17
 **Files likely touched:**
 - src/app/(public)/booking/PersonalStep.tsx
@@ -322,10 +322,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 19: Deliver vehicle-data step
 **Description:** Add vehicle data entry and validation as a separate booking flow slice.
 **Acceptance criteria:**
-- [ ] Vehicle input is bounded and not persisted in browser storage.
-- [ ] Server validation remains authoritative.
+- [x] Vehicle input is bounded and not persisted in browser storage.
+- [x] Server validation remains authoritative.
 **Verification:**
-- [ ] Browser/contract tests pass.
+- [x] Browser/contract tests pass.
 **Dependencies:** Task 18
 **Files likely touched:**
 - src/app/(public)/booking/VehicleStep.tsx
@@ -335,7 +335,7 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - frontend-ui-engineering
 
 ## Checkpoint 7: Public PII entry
-- [ ] Browser storage/URL and validation checks pass.
+- [x] Browser storage/URL and validation checks pass.
 
 ## Task 20: Deliver service-mode and address step
 **Description:** Add drop-off/pickup selection with conditional address and material state reset.

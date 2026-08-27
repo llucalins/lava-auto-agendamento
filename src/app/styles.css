@@ -1,0 +1,30 @@
+:root { color-scheme: light; font-family: system-ui, sans-serif; background: #f5f7fb; color: #172033; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { min-height: 100vh; padding: 2rem 1rem; }
+.booking-shell { max-width: 720px; margin: 0 auto; }
+.eyebrow { color: #3867d6; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: .75rem; }
+h1 { margin: .25rem 0; font-size: clamp(2rem, 8vw, 3.5rem); }
+.intro { color: #536079; margin-bottom: 2rem; }
+.step { background: white; border: 1px solid #e1e6ef; border-radius: 1rem; padding: 1.25rem; margin-top: 1rem; box-shadow: 0 8px 24px #1720330d; }
+h2 { font-size: 1.2rem; margin: 0 0 1rem; }
+.cards, .day-list, .start-list { display: grid; gap: .75rem; }
+.package-card, .day, .start { border: 1px solid #ccd5e4; border-radius: .75rem; background: white; padding: 1rem; text-align: left; cursor: pointer; color: inherit; }
+.package-card:hover, .day:hover, .start:hover, .selected-day { border-color: #3867d6; background: #eef3ff; }
+.package-card { display: grid; gap: .35rem; }
+.package-name { font-weight: 700; font-size: 1.1rem; }
+.day-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.start-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.start { text-align: center; font-weight: 700; }
+.back { background: none; border: 0; color: #3867d6; padding: 0; cursor: pointer; }
+.selected { color: #536079; }
+.error { color: #a21d35; background: #fff0f2; padding: .75rem; border-radius: .5rem; }
+.personal-step { border-top: 1px solid #e1e6ef; margin-top: 1.25rem; padding-top: 1.25rem; }
+.vehicle-step { border-top: 1px solid #e1e6ef; margin-top: 1.25rem; padding-top: 1.25rem; }
+form { display: grid; gap: .5rem; }
+label { font-weight: 600; margin-top: .5rem; }
+input { border: 1px solid #ccd5e4; border-radius: .5rem; font: inherit; min-height: 2.75rem; padding: .6rem .7rem; }
+.primary { background: #3867d6; border: 0; border-radius: .6rem; color: white; cursor: pointer; font: inherit; font-weight: 700; margin-top: .75rem; min-height: 2.75rem; }
+.success { background: #effaf2; border-radius: .5rem; color: #176b35; padding: .75rem; }
+.muted { color: #536079; }
+@media (max-width: 480px) { main { padding: 1.25rem .75rem; } .start-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
