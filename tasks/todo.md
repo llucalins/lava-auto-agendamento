@@ -443,10 +443,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 26: Implement session revocation and CSRF
 **Description:** Add rotation, idle/absolute expiry, logout/reduction revocation, CSRF synchronizer, and Origin/Referer handling.
 **Acceptance criteria:**
-- [ ] Current server state revokes expired/reduced/disabled sessions.
-- [ ] Unsafe cookie requests require CSRF/origin validation.
+- [x] Current server state revokes expired/reduced/disabled sessions.
+- [x] Unsafe cookie requests require CSRF/origin validation.
 **Verification:**
-- [ ] PostgreSQL lifecycle and browser CSRF/shared-device tests pass.
+- [x] PostgreSQL lifecycle and browser CSRF/shared-device tests pass.
 **Dependencies:** Task 25
 **Files likely touched:**
 - src/server/security/csrf.ts
