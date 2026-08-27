@@ -62,10 +62,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 4: Establish pg transaction and integration-test harness
 **Description:** Add pool, same-client transaction helper, local isolated PostgreSQL connection, and integration-test harness.
 **Acceptance criteria:**
-- [ ] Every transaction uses one checked-out client and always releases it.
-- [ ] Tests use isolated PostgreSQL and synthetic data.
+- [x] Every transaction uses one checked-out client and always releases it.
+- [x] Tests use isolated PostgreSQL and synthetic data.
 **Verification:**
-- [ ] Real PostgreSQL commit/rollback/same-client tests pass.
+- [x] Real PostgreSQL commit/rollback/same-client tests pass.
 **Dependencies:** Task 3
 **Files likely touched:**
 - src/server/persistence/pool.ts
@@ -78,10 +78,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 5: Establish migration and database privilege boundary
 **Description:** Integrate node-pg-migrate and document migration, runtime, backup/restore, and audit-history privilege separation.
 **Acceptance criteria:**
-- [ ] Migration authority is separate from runtime; runtime cannot alter schema.
-- [ ] Privilege model reserves audit history and backup/restore paths.
+- [x] Migration authority is separate from runtime; runtime cannot alter schema.
+- [x] Privilege model reserves audit history and backup/restore paths.
 **Verification:**
-- [ ] Apply clean test migrations and review role grants.
+- [x] Apply clean test migrations and review role grants.
 **Dependencies:** Task 4
 **Files likely touched:**
 - database/migrate.ts
@@ -94,10 +94,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 6: Implement durable audit envelope
 **Description:** Add versioned minimized append-only audit schema/writer with correlation and idempotency references.
 **Acceptance criteria:**
-- [ ] Allowlisted envelope rejects raw PII, secrets, headers, and bodies.
-- [ ] Runtime is insert-only; events expose safe correlation metadata only.
+- [x] Allowlisted envelope rejects raw PII, secrets, headers, and bodies.
+- [x] Runtime is insert-only; events expose safe correlation metadata only.
 **Verification:**
-- [ ] PostgreSQL privilege/schema and redaction tests pass.
+- [x] PostgreSQL privilege/schema and redaction tests pass.
 **Dependencies:** Task 5
 **Files likely touched:**
 - database/migrations/*-audit-events.ts
@@ -109,7 +109,7 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - observability-and-instrumentation
 
 ## Checkpoint 2: Database and audit
-- [ ] PostgreSQL transaction/migration/audit tests pass.
+- [x] PostgreSQL transaction/migration/audit tests pass.
 
 # Phase 2: Catalogue, calendar, booking integrity, capacity, and idempotency
 
