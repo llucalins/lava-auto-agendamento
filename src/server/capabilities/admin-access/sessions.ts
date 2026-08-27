@@ -9,7 +9,7 @@ function hash(value: string): string { return createHash("sha256").update(value,
 export async function createLocalSession(pool: SessionPool, identity: AuthenticatedIdentity): Promise<LocalSession> {
   if (!identity.mfaAssured || !identity.issuer || !identity.subject) throw new Error("Authentication is invalid.");
   const cookieValue = randomBytes(32).toString("base64url");
-  const result = await pool.query("insert into app.admin_sessions (session_verifier_hash, issuer, subject, assurance, assurance_expires_at, idle_expires_at, absolute_expires_at) values ($1, $2, $3, 'MFA', current_timestamp + interval '8 hours', current_timestamp + interval '30 minutes', current_timestamp + interval '8 hours') returning absolute_expires_at as \"absoluteExpiresAt\"", [hash(cookieValue), identity.issuer, identity.subject]);
+  const result = await pool.query("insert into app.admin_sessions (session_verifier_hash, issuer, subject, assurance, assurance_expires_at, idle_expires_at, absolute_expires_at, authorization_version) values ($1, $2, $3, 'MFA', current_timestamp + interval '8 hours', current_timestamp + interval '30 minutes', current_timestamp + interval '8 hours', (select authorization_version from app.admin_identities where issuer = $2 and subject = $3 and account_state = 'ACTIVE')) returning absolute_expires_at as \"absoluteExpiresAt\"", [hash(cookieValue), identity.issuer, identity.subject]);
   const expiresAt = result.rows[0]?.absoluteExpiresAt;
   if (!(expiresAt instanceof Date) && typeof expiresAt !== "string") throw new Error("Authentication is invalid.");
   return { cookieValue, expiresAt: new Date(expiresAt), identity };

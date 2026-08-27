@@ -459,10 +459,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 27: Implement application authorization and owner guard
 **Description:** Add OWNER/EMPLOYEE relationship, default-deny permissions, actor/action/resource/field checks, versions, reduction invalidation, and last-owner guard.
 **Acceptance criteria:**
-- [ ] CPF/address need explicit field permission; self-escalation/last-owner removal fail.
-- [ ] Privilege changes are current-state and durable-audit protected.
+- [x] CPF/address need explicit field permission; self-escalation/last-owner removal fail.
+- [x] Privilege changes are current-state and durable-audit protected.
 **Verification:**
-- [ ] PostgreSQL IDOR/reduction/owner tests pass.
+- [x] PostgreSQL IDOR/reduction/owner tests pass.
 **Dependencies:** Tasks 6, 26
 **Files likely touched:**
 - database/migrations/*-authorization.ts
