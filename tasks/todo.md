@@ -340,10 +340,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 20: Deliver service-mode and address step
 **Description:** Add drop-off/pickup selection with conditional address and material state reset.
 **Acceptance criteria:**
-- [ ] Address appears only for pickup and clears on drop-off.
-- [ ] Client cannot bypass server pickup invariant.
+- [x] Address appears only for pickup and clears on drop-off.
+- [x] Client cannot bypass server pickup invariant.
 **Verification:**
-- [ ] Browser conditional-flow and contract tests pass.
+- [x] Browser conditional-flow and contract tests pass.
 **Dependencies:** Task 19
 **Files likely touched:**
 - src/app/(public)/booking/ServiceModeStep.tsx
@@ -355,10 +355,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 21: Deliver payment-intent step
 **Description:** Add intended payment allowlist selection with no payment processing or credential collection.
 **Acceptance criteria:**
-- [ ] Only approved intent values are selectable/accepted.
-- [ ] No card/banking/PIX secret field exists.
+- [x] Only approved intent values are selectable/accepted.
+- [x] No card/banking/PIX secret field exists.
 **Verification:**
-- [ ] Contract and browser tests pass.
+- [x] Contract and browser tests pass.
 **Dependencies:** Task 20
 **Files likely touched:**
 - src/app/(public)/booking/PaymentStep.tsx
@@ -370,10 +370,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 22: Deliver review and duplicate-safe confirmation UX
 **Description:** Add masked CPF review, stale reconciliation, explicit confirmation, and intent-key duplicate-submit behavior.
 **Acceptance criteria:**
-- [ ] CPF masks and material changes require renewed review.
-- [ ] Retry/double submit safely recovers prior outcome.
+- [x] CPF masks and material changes require renewed review.
+- [x] Retry/double submit safely recovers prior outcome.
 **Verification:**
-- [ ] Playwright stale/double-submit/lost-response test passes.
+- [x] Playwright stale/double-submit/lost-response test passes.
 **Dependencies:** Tasks 16, 21
 **Files likely touched:**
 - src/app/(public)/booking/ReviewStep.tsx
@@ -384,7 +384,7 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - frontend-ui-engineering
 
 ## Checkpoint 8: Public booking
-- [ ] End-to-end booking and stale/retry/no-store checks pass.
+- [x] End-to-end booking and stale/retry/no-store checks pass.
 
 # Phase 4: OIDC/session/authorization and protected operations
 

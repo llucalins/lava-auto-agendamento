@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import PersonalStep, { type PersonalDetails } from "./PersonalStep";
 import VehicleStep, { type VehicleDetails } from "./VehicleStep";
+import ServiceModeStep, { type ServiceModeDetails } from "./ServiceModeStep";
+import PaymentStep, { type PaymentIntent } from "./PaymentStep";
+import ReviewStep from "./ReviewStep";
 
 type Package = Readonly<{
   id: string;
@@ -60,6 +63,8 @@ export default function SelectionSteps() {
   const [selectedStart, setSelectedStart] = useState<Start | null>(null);
   const [personalDetails, setPersonalDetails] = useState<PersonalDetails | null>(null);
   const [vehicleDetails, setVehicleDetails] = useState<VehicleDetails | null>(null);
+  const [serviceModeDetails, setServiceModeDetails] = useState<ServiceModeDetails | null>(null);
+  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const days = useMemo(() => futureDays(14), []);
@@ -79,6 +84,8 @@ export default function SelectionSteps() {
     setSelectedStart(null);
     setPersonalDetails(null);
     setVehicleDetails(null);
+    setServiceModeDetails(null);
+    setPaymentIntent(null);
     setError(null);
     const candidates = Array.from({ length: 21 }, (_, index) => zonedInstant(day, 8 + Math.floor(index / 2), (index % 2) * 30));
     const query = new URLSearchParams({ packageId: selectedPackage.id });
@@ -100,6 +107,8 @@ export default function SelectionSteps() {
     setSelectedStart(null);
     setPersonalDetails(null);
     setVehicleDetails(null);
+    setServiceModeDetails(null);
+    setPaymentIntent(null);
     setError(null);
   }
 
@@ -109,6 +118,6 @@ export default function SelectionSteps() {
     <p className="intro">Escolha um pacote, um dia e um horário compatível.</p>
     {error && <p className="error" role="alert">{error}</p>}
     {!selectedPackage && <div className="step"><h2>Escolha o pacote</h2>{loading ? <p>Carregando pacotes…</p> : <div className="cards">{packages.map((item) => <button className="package-card" key={item.id} onClick={() => choosePackage(item)}><span className="package-name">{item.name}</span><span>{item.description}</span><span>{money(item.priceCentavos)} · {item.durationMinutes} min</span></button>)}</div>}</div>}
-    {selectedPackage && <div className="step"><button className="back" onClick={() => choosePackage(null)}>Trocar pacote</button><p className="selected">Pacote: <strong>{selectedPackage.name}</strong></p><h2>Escolha o dia</h2><div className="day-list">{days.map((day, index) => <button key={day} className={selectedDay === day ? "day selected-day" : "day"} onClick={() => void chooseDay(day)}>{index === 0 ? "Hoje" : index === 1 ? "Amanhã" : new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, weekday: "short", day: "numeric", month: "short" }).format(new Date(`${day}T12:00:00Z`))}</button>)}</div>{selectedDay && <><h2>Escolha o horário</h2>{starts.length ? <div className="start-list">{starts.map((item) => <button className={selectedStart?.start === item.start ? "start selected-day" : "start"} key={item.start} onClick={() => { setSelectedStart(item); setPersonalDetails(null); setVehicleDetails(null); }}>{new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, hour: "2-digit", minute: "2-digit" }).format(new Date(item.start))}</button>)}</div> : <p className="muted">Nenhum horário compatível encontrado neste dia.</p>}</>}{selectedStart && <PersonalStep onValid={(details) => { setPersonalDetails(details); setVehicleDetails(null); }} />}{personalDetails && <VehicleStep onValid={setVehicleDetails} />}{vehicleDetails && <p className="success" role="status">Dados do veículo preenchidos. A revisão será exibida na próxima etapa.</p>}</div>}
+    {selectedPackage && <div className="step"><button className="back" onClick={() => choosePackage(null)}>Trocar pacote</button><p className="selected">Pacote: <strong>{selectedPackage.name}</strong></p><h2>Escolha o dia</h2><div className="day-list">{days.map((day, index) => <button key={day} className={selectedDay === day ? "day selected-day" : "day"} onClick={() => void chooseDay(day)}>{index === 0 ? "Hoje" : index === 1 ? "Amanhã" : new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, weekday: "short", day: "numeric", month: "short" }).format(new Date(`${day}T12:00:00Z`))}</button>)}</div>{selectedDay && <><h2>Escolha o horário</h2>{starts.length ? <div className="start-list">{starts.map((item) => <button className={selectedStart?.start === item.start ? "start selected-day" : "start"} key={item.start} onClick={() => { setSelectedStart(item); setPersonalDetails(null); setVehicleDetails(null); setServiceModeDetails(null); setPaymentIntent(null); }}>{new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, hour: "2-digit", minute: "2-digit" }).format(new Date(item.start))}</button>)}</div> : <p className="muted">Nenhum horário compatível encontrado neste dia.</p>}</>}{selectedStart && <PersonalStep onValid={(details) => { setPersonalDetails(details); setVehicleDetails(null); setServiceModeDetails(null); setPaymentIntent(null); }} />}{personalDetails && <VehicleStep onValid={(details) => { setVehicleDetails(details); setServiceModeDetails(null); setPaymentIntent(null); }} />}{vehicleDetails && <ServiceModeStep onValid={(details) => { setServiceModeDetails(details); setPaymentIntent(null); }} />}{serviceModeDetails && <PaymentStep onValid={setPaymentIntent} />}{paymentIntent && <ReviewStep packageId={selectedPackage.id} packageName={selectedPackage.name} start={selectedStart!.start} personal={personalDetails!} vehicle={vehicleDetails!} mode={serviceModeDetails!} payment={paymentIntent} />}</div>}
   </section>;
 }
