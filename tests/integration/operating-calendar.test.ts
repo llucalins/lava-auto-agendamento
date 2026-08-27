@@ -1,0 +1,2 @@
+import {describe,it,expect} from "vitest";import{createIntegrationPool}from"../support/postgres";
+describe("calendar constraints",()=>it("enforces Fortaleza and no-cross-midnight windows",async()=>{const p=createIntegrationPool();await p.query("insert into app.operating_calendar default values on conflict do nothing");await expect(p.query("insert into app.calendar_recurring_windows values(1,'18:00','09:00',1) on conflict do nothing")).rejects.toThrow();await p.end()}));

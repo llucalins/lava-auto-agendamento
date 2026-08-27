@@ -116,10 +116,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 7: Persist service-package revisions
 **Description:** Add package/revision/state persistence with BRL centavos and positive bounded duration.
 **Acceptance criteria:**
-- [ ] `price_centavos >= 0`; zero/positive are valid and negatives fail.
-- [ ] Revision/state integrity preserves immutable historical references.
+- [x] `price_centavos >= 0`; zero/positive are valid and negatives fail.
+- [x] Revision/state integrity preserves immutable historical references.
 **Verification:**
-- [ ] PostgreSQL price/duration/revision tests pass.
+- [x] PostgreSQL price/duration/revision tests pass.
 **Dependencies:** Task 5
 **Files likely touched:**
 - database/migrations/*-service-packages.ts
@@ -132,10 +132,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 8: Expose active public package projection
 **Description:** Add active-only minimal package query and server-side catalogue validation.
 **Acceptance criteria:**
-- [ ] Public projection excludes inactive/internal fields and PII.
-- [ ] Client price/duration/revision cannot become authoritative.
+- [x] Public projection excludes inactive/internal fields and PII.
+- [x] Client price/duration/revision cannot become authoritative.
 **Verification:**
-- [ ] Unit/API contract tests pass.
+- [x] Unit/API contract tests pass.
 **Dependencies:** Task 7
 **Files likely touched:**
 - src/server/capabilities/service-catalog/public-query.ts
@@ -148,10 +148,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 9: Persist operating-calendar rules
 **Description:** Add recurring windows, overrides, temporary unavailability, revisions, and named business timezone validation.
 **Acceptance criteria:**
-- [ ] America/Fortaleza is initial IANA authority; no-cross-midnight MVP rules hold.
-- [ ] Revisions and precedence protect calendar writes.
+- [x] America/Fortaleza is initial IANA authority; no-cross-midnight MVP rules hold.
+- [x] Revisions and precedence protect calendar writes.
 **Verification:**
-- [ ] PostgreSQL domain/constraint tests pass.
+- [x] PostgreSQL domain/constraint tests pass.
 **Dependencies:** Task 5
 **Files likely touched:**
 - database/migrations/*-operating-calendar.ts
@@ -162,7 +162,7 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - test-driven-development
 
 ## Checkpoint 3: Public catalogue/calendar foundations
-- [ ] Package and calendar integration/contract tests pass.
+- [x] Package and calendar integration/contract tests pass.
 
 ## Task 10: Compute bounded package-duration availability
 **Description:** Add advisory, bounded availability using calendar rules and authoritative instants without capacity reservation/fixed slots.

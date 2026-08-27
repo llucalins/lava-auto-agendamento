@@ -1,0 +1,2 @@
+import { describe,it,expect } from "vitest"; import { listActivePackages } from "../../src/server/capabilities/service-catalog/public-query";
+describe("public package projection",()=>it("queries active packages without internal revisions",async()=>{let sql=""; const rows=await listActivePackages({query:async(q:string)=>{sql=q;return {rows:[]}}} as never); expect(rows).toEqual([]); expect(sql).toContain("r.state='ACTIVE'"); expect(sql).not.toContain("current_revision as");}));
