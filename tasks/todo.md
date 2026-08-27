@@ -202,10 +202,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 12: Persist PII and enforce pickup invariant
 **Description:** Add customer/vehicle PII boundary and guarded/deferred pickup-address invariant.
 **Acceptance criteria:**
-- [ ] Pickup requires address; drop-off atomically retains none; email is optional.
-- [ ] Generic booking projections cannot preload sensitive PII.
+- [x] Pickup requires address; drop-off atomically retains none; email is optional.
+- [x] Generic booking projections cannot preload sensitive PII.
 **Verification:**
-- [ ] PostgreSQL invalid-final-state and projection tests pass.
+- [x] PostgreSQL invalid-final-state and projection tests pass.
 **Dependencies:** Task 11
 **Files likely touched:**
 - database/migrations/*-booking-pii.ts
@@ -218,10 +218,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 13: Add capacity allocation integrity
 **Description:** Add configurable N=1 units and guarded allocation rows with `[start,end)` exclusion protection, future N>1-compatible representation only.
 **Acceptance criteria:**
-- [ ] Overlap fails, back-to-back succeeds, and SCHEDULED/IN_PROGRESS consume.
-- [ ] CANCELLED releases exactly once; COMPLETED retains history.
+- [x] Overlap fails, back-to-back succeeds, and SCHEDULED/IN_PROGRESS consume.
+- [x] CANCELLED releases exactly once; COMPLETED retains history.
 **Verification:**
-- [ ] Real PostgreSQL lifecycle/constraint tests pass.
+- [x] Real PostgreSQL lifecycle/constraint tests pass.
 **Dependencies:** Task 11
 **Files likely touched:**
 - database/migrations/*-capacity.ts
@@ -232,7 +232,7 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - test-driven-development
 
 ## Checkpoint 5: Booking model
-- [ ] Booking/PII/capacity PostgreSQL tests pass.
+- [x] Booking/PII/capacity PostgreSQL tests pass.
 
 ## Task 14: Prove capacity concurrency
 **Description:** Prove concurrent allocation/confirmation contenders cannot exceed N=1.
