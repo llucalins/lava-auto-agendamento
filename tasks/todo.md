@@ -167,10 +167,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 10: Compute bounded package-duration availability
 **Description:** Add advisory, bounded availability using calendar rules and authoritative instants without capacity reservation/fixed slots.
 **Acceptance criteria:**
-- [ ] DST gaps/repeated times fail safely; client zones are not authority.
-- [ ] Package duration and calendar revision drive minimal selectable results.
+- [x] DST gaps/repeated times fail safely; client zones are not authority.
+- [x] Package duration and calendar revision drive minimal selectable results.
 **Verification:**
-- [ ] Unit DST/bounds tests and availability contract test pass.
+- [x] Unit DST/bounds tests and availability contract test pass.
 **Dependencies:** Tasks 8, 9
 **Files likely touched:**
 - src/server/capabilities/operating-calendar/availability.ts
@@ -183,10 +183,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 11: Persist booking aggregate and commercial snapshot
 **Description:** Add booking identity/revision/status, service interval, package revision reference, immutable snapshot, service mode, and payment intent fields.
 **Acceptance criteria:**
-- [ ] `[start,end)` and snapshot terms are server-authoritative.
-- [ ] Snapshot preserves BRL price/currency/duration across catalogue changes.
+- [x] `[start,end)` and snapshot terms are server-authoritative.
+- [x] Snapshot preserves BRL price/currency/duration across catalogue changes.
 **Verification:**
-- [ ] PostgreSQL aggregate/snapshot tests pass.
+- [x] PostgreSQL aggregate/snapshot tests pass.
 **Dependencies:** Tasks 7, 10
 **Files likely touched:**
 - database/migrations/*-bookings.ts
@@ -197,7 +197,7 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - test-driven-development
 
 ## Checkpoint 4: Booking aggregate
-- [ ] Aggregate/snapshot PostgreSQL tests pass.
+- [x] Aggregate/snapshot PostgreSQL tests pass.
 
 ## Task 12: Persist PII and enforce pickup invariant
 **Description:** Add customer/vehicle PII boundary and guarded/deferred pickup-address invariant.
