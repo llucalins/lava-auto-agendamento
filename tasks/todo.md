@@ -391,10 +391,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 23: Implement OIDC login initiation
 **Description:** Add provider-neutral authorization-code initiation with state, nonce, PKCE, allowlisted redirect, and server transient lifecycle.
 **Acceptance criteria:**
-- [ ] State/nonce/PKCE are single-use, bounded, server-controlled.
-- [ ] Login initiation uses CSRF/origin protections and no tokens in logs/storage.
+- [x] State/nonce/PKCE are single-use, bounded, server-controlled.
+- [x] Login initiation uses CSRF/origin protections and no tokens in logs/storage.
 **Verification:**
-- [ ] Unit/contract initiation and replay tests pass.
+- [x] Unit/contract initiation and replay tests pass.
 **Dependencies:** Tasks 3, 6
 **Files likely touched:**
 - database/migrations/*-oidc-transactions.ts
@@ -407,10 +407,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 24: Validate OIDC callback and link identity
 **Description:** Validate trusted issuer/discovery/JWKS signature, audience/azp, expiry, state/nonce, identity linkage, and mandatory MFA assurance.
 **Acceptance criteria:**
-- [ ] Invalid callback/claims/assurance fail closed generically.
-- [ ] OIDC claims establish identity only, never application authorization.
+- [x] Invalid callback/claims/assurance fail closed generically.
+- [x] OIDC claims establish identity only, never application authorization.
 **Verification:**
-- [ ] Mock-provider callback/claim tests pass.
+- [x] Mock-provider callback/claim tests pass.
 **Dependencies:** Task 23
 **Files likely touched:**
 - src/server/capabilities/admin-access/oidc-callback.ts
@@ -423,10 +423,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 25: Create PostgreSQL local sessions
 **Description:** Issue opaque Secure/HttpOnly local sessions from validated identity and record safe auth security classification.
 **Acceptance criteria:**
-- [ ] Session is PostgreSQL-backed and no token/cookie/raw claim reaches telemetry.
-- [ ] Authentication remains distinct from authorization.
+- [x] Session is PostgreSQL-backed and no token/cookie/raw claim reaches telemetry.
+- [x] Authentication remains distinct from authorization.
 **Verification:**
-- [ ] Session creation/cookie tests pass.
+- [x] Session creation/cookie tests pass.
 **Dependencies:** Task 24
 **Files likely touched:**
 - database/migrations/*-admin-sessions.ts
@@ -438,7 +438,7 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - observability-and-instrumentation
 
 ## Checkpoint 9: OIDC/session creation
-- [ ] Initiation/callback/session tests and human provider-gate review pass.
+- [x] Initiation/callback/session tests and human provider-gate review pass.
 
 ## Task 26: Implement session revocation and CSRF
 **Description:** Add rotation, idle/absolute expiry, logout/reduction revocation, CSRF synchronizer, and Origin/Referer handling.
