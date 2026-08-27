@@ -475,10 +475,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 28: Deliver admin booking lists
 **Description:** Add protected today/upcoming/history bounded projections.
 **Acceptance criteria:**
-- [ ] Current authorization and page/date bounds apply.
-- [ ] Lists omit CPF/address and are private/no-store.
+- [x] Current authorization and page/date bounds apply.
+- [x] Lists omit CPF/address and are private/no-store.
 **Verification:**
-- [ ] Contract/browser authorization tests pass.
+- [x] Contract/browser authorization tests pass.
 **Dependencies:** Task 27
 **Files likely touched:**
 - src/server/capabilities/admin-operations/booking-lists.ts
