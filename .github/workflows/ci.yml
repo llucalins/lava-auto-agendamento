@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: "true"
+  APP_ORIGIN: http://localhost:3000
+  TRACKING_VERIFIER_KEY_VERSION: "1"
+  TRACKING_VERIFIER_KEY: Y2ktb25seS10cmFja2luZy12ZXJpZmllci1rZXktMzItYnl0ZXM
+
+jobs:
+  static-and-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Pin npm
+        run: npm install --global npm@11.17.0 --ignore-scripts
+      - name: Frozen install
+        run: npm ci --ignore-scripts
+      - name: Supply-chain policy
+        run: |
+          test "$(npm --version)" = "11.17.0"
+          test "$(npm config get ignore-scripts)" = "true"
+          node scripts/verify-ci-policy.mjs
+          npm audit signatures
+      - name: Static gates
+        run: |
+          npm run lint
+          npm run typecheck
+          npm run build
+      - name: Unit gate
+        run: npm test -- tests/unit
+      - name: Dependency security
+        run: |
+          npm audit --omit=dev --audit-level=high
+          npm audit --audit-level=high
+
+  postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-bootstrap-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: ci-bootstrap-only
+      DATABASE_URL: postgresql://lava_test:ci-runtime-only@localhost:5432/lava_auto
+      MIGRATION_DATABASE_URL: postgresql://lava_migrator:ci-migration-only@localhost:5432/lava_auto
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Pin npm and install
+        run: |
+          npm install --global npm@11.17.0 --ignore-scripts
+          npm ci --ignore-scripts
+      - name: Create synthetic database roles
+        run: |
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          create role lava_migrator login password 'ci-migration-only' nosuperuser nocreatedb nocreaterole noinherit;
+          create role lava_test login password 'ci-runtime-only' nosuperuser nocreatedb nocreaterole noinherit;
+          create database lava_auto owner lava_migrator;
+          SQL
+      - name: Fresh migration chain
+        run: node ./node_modules/node-pg-migrate/bin/node-pg-migrate.js up -d MIGRATION_DATABASE_URL -m database/migrations -t lava_migrations --single-transaction
+      - name: PostgreSQL contract gate
+        run: npm test -- tests/contract
+      - name: PostgreSQL integration and concurrency gates
+        run: npm test -- tests/integration
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-bootstrap-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: ci-bootstrap-only
+      DATABASE_URL: postgresql://lava_test:ci-runtime-only@localhost:5432/lava_auto
+      MIGRATION_DATABASE_URL: postgresql://lava_migrator:ci-migration-only@localhost:5432/lava_auto
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Pin npm and install
+        run: |
+          npm install --global npm@11.17.0 --ignore-scripts
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Create synthetic database roles
+        run: |
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          create role lava_migrator login password 'ci-migration-only' nosuperuser nocreatedb nocreaterole noinherit;
+          create role lava_test login password 'ci-runtime-only' nosuperuser nocreatedb nocreaterole noinherit;
+          create database lava_auto owner lava_migrator;
+          SQL
+      - name: Fresh migration chain
+        run: node ./node_modules/node-pg-migrate/bin/node-pg-migrate.js up -d MIGRATION_DATABASE_URL -m database/migrations -t lava_migrations --single-transaction
+      - name: Critical browser gates
+        run: npm run test:browser
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: ${{ failure() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
