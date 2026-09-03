@@ -1,5 +1,7 @@
 import type { Pool, PoolClient } from "pg";
 
+import { applyTransactionResourceLimits } from "../security/resource-controls";
+
 type TransactionPool = Pick<Pool, "connect">;
 
 export async function withTransaction<Result>(
@@ -10,6 +12,7 @@ export async function withTransaction<Result>(
 
   try {
     await client.query("BEGIN");
+    await applyTransactionResourceLimits(client);
 
     try {
       const result = await operation(client);

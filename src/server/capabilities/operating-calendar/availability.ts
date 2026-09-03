@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { assertBoundedDateWindow } from "../../security/resource-controls";
+
 const MAX_CANDIDATES = 32;
 
 const requestSchema = z.object({
@@ -52,6 +54,9 @@ export function parseAvailabilityRequest(input: unknown): AvailabilityRequest {
 
     return instant;
   });
+
+  const ordered = [...starts].sort((left, right) => left.getTime() - right.getTime());
+  assertBoundedDateWindow(ordered[0]!, ordered.at(-1)!, 31);
 
   return { packageId: parsed.data.packageId, starts };
 }
