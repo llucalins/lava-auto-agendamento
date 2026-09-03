@@ -14,6 +14,7 @@ export async function GET(request: Request) {
     const session = await createLocalSession(pool, identity);
     const cookieStore = await cookies();
     cookieStore.set("__Host-admin_session", session.cookieValue, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 8 * 60 * 60, expires: session.expiresAt });
+    cookieStore.set("__Host-admin_csrf", session.csrfToken, { httpOnly: false, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 8 * 60 * 60, expires: session.expiresAt });
     return NextResponse.json({ kind: "AUTHENTICATED" }, { headers: { "cache-control": "no-store" } });
   } catch { return NextResponse.json({ kind: "AUTHENTICATION_FAILED" }, { status: 400, headers: { "cache-control": "no-store" } }); }
 }

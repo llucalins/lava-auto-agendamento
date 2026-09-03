@@ -11,9 +11,11 @@ describe("local PostgreSQL session contract", () => {
     await withTransaction(pool, async (client) => {
       const session = await createLocalSession(client, { issuer: "https://id.example.test", subject: "subject-1", mfaAssured: true });
       expect(session.cookieValue).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(session.csrfToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
       await expect(resolveLocalSession(client, session.cookieValue)).resolves.toEqual({ issuer: "https://id.example.test", subject: "subject-1", mfaAssured: true });
-      const stored = await client.query("select session_verifier_hash from app.admin_sessions where issuer = $1 and subject = $2", ["https://id.example.test", "subject-1"]);
+      const stored = await client.query("select session_verifier_hash, csrf_token_hash from app.admin_sessions where issuer = $1 and subject = $2", ["https://id.example.test", "subject-1"]);
       expect(stored.rows[0].session_verifier_hash).not.toBe(session.cookieValue);
+      expect(stored.rows[0].csrf_token_hash).not.toBe(session.csrfToken);
     });
   });
 
