@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { confirmBooking } from "../../../../server/capabilities/booking-lifecycle/confirm";
 import { getDatabasePool } from "../../../../server/persistence/pool";
+import { issueInitialTrackingCredential, loadTrackingVerifierKey } from "../../../../server/capabilities/public-status-tracking/issuance";
 import { readBoundedJson, routeResourcePolicies, runWithRouteConcurrency } from "../../../../server/security/resource-controls";
 
 export async function POST(request: Request) {
@@ -16,7 +17,16 @@ export async function POST(request: Request) {
     const body = await readBoundedJson(request, routeResourcePolicies["booking-confirmation"].maxBodyBytes) as { intentKey?: string; material?: Record<string, unknown> };
     const key = process.env.CONFIRMATION_FINGERPRINT_KEY;
     if (!key || !body.intentKey || !body.material) return NextResponse.json({ kind: "INVALID_INPUT" }, { status: 400, headers });
-    const result = await confirmBooking(getDatabasePool(), { intentKey: body.intentKey, fingerprintKey: key, expiresAt: new Date(Date.now() + 86_400_000), material: { ...body.material, serviceStart: new Date(String(body.material.serviceStart)) } as never });
+    const pool = getDatabasePool();
+    const result = await confirmBooking(pool, { intentKey: body.intentKey, fingerprintKey: key, expiresAt: new Date(Date.now() + 86_400_000), material: { ...body.material, serviceStart: new Date(String(body.material.serviceStart)) } as never });
+    if (result.kind === "CONFIRMED") {
+      try {
+        const issuance = await issueInitialTrackingCredential(pool, result.bookingId, loadTrackingVerifierKey(process.env));
+        return NextResponse.json({ kind: result.kind, replayed: result.replayed, ...(issuance.kind === "ISSUED" ? { trackingCredential: issuance.credential } : {}) }, { status: 200, headers });
+      } catch {
+        return NextResponse.json({ kind: result.kind, replayed: result.replayed }, { status: 200, headers });
+      }
+    }
     return NextResponse.json(result, { status: result.kind === "TRANSIENT" ? 503 : 200, headers });
     }, routeResourcePolicies["booking-confirmation"].maxConcurrent);
   } catch (error) {
