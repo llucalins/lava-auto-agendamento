@@ -7,11 +7,12 @@ import {
   getBookingProjection,
   persistBookingPii,
 } from "../../src/server/capabilities/booking-lifecycle/pii-repository";
-import { createIntegrationPool } from "../support/postgres";
+import { createIntegrationPool, createMigrationIntegrationPool } from "../support/postgres";
 
 describe("booking PII pickup invariant", () => {
   it("requires an address for pickup, retains none for drop-off, and keeps generic projections PII-free", async () => {
     const pool = createIntegrationPool();
+    const migrationPool = createMigrationIntegrationPool();
     const packageId = randomUUID();
     await pool.query("insert into app.service_packages values ($1, 1)", [packageId]);
     await pool.query(
@@ -74,7 +75,7 @@ describe("booking PII pickup invariant", () => {
       pickupAddress: "Rua das Flores, 10",
     });
 
-    const addresses = await pool.query<{ booking_id: string; pickup_address: string | null }>(
+    const addresses = await migrationPool.query<{ booking_id: string; pickup_address: string | null }>(
       "select booking_id, pickup_address from app.booking_customer_vehicle_pii where booking_id in ($1, $2) order by booking_id",
       [dropOff.bookingId, pickup.bookingId],
     );
@@ -92,6 +93,6 @@ describe("booking PII pickup invariant", () => {
       serviceStart: "2026-09-07T12:00:00.000Z",
       serviceEnd: "2026-09-07T12:30:00.000Z",
     });
-    await pool.end();
+    await Promise.all([pool.end(), migrationPool.end()]);
   });
 });

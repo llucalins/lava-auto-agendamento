@@ -12,8 +12,44 @@ const auditEventSchema = z.object({
 
 export type AuditEvent = z.input<typeof auditEventSchema>;
 
+const disclosureAuthorizationSchema = z.object({
+  actorRef: z.uuid(),
+  targetRef: z.uuid(),
+  fieldRef: z.enum(["CPF", "PICKUP_ADDRESS"]),
+  correlationId: z.uuid(),
+  requestId: z.uuid(),
+  authorizationContextRef: z.uuid(),
+  purpose: z.literal("BOOKING_OPERATION"),
+}).strict();
+
 export async function writeAuditEvent(client: PoolClient, event: AuditEvent): Promise<string> {
   const value = auditEventSchema.parse(event); const eventId = randomUUID();
   await client.query("insert into app.audit_events (event_id, category, action, outcome, schema_version, actor_ref, target_ref, field_ref, correlation_id, idempotency_ref, authorization_context_ref, reason_code) values ($1,$2,$3,$4,1,$5,$6,$7,$8,$9,$10,$11)", [eventId, value.category, value.action, value.outcome, value.actorRef, value.targetRef, value.fieldRef ?? null, value.correlationId ?? null, value.idempotencyRef ?? null, value.authorizationContextRef ?? null, value.reasonCode ?? null]);
   return eventId;
+}
+
+export async function writeDisclosureAuthorizationAudit(
+  client: PoolClient,
+  event: z.input<typeof disclosureAuthorizationSchema>,
+): Promise<void> {
+  const value = disclosureAuthorizationSchema.parse(event);
+  await client.query("savepoint disclosure_audit_insert");
+  try {
+    await client.query(
+      `insert into app.audit_events (
+         event_id, category, action, outcome, schema_version, actor_ref, target_ref,
+         field_ref, correlation_id, idempotency_ref, authorization_context_ref, reason_code
+       ) values ($1, 'SENSITIVE_READ', 'AUTHORIZED_FOR_DISCLOSURE', 'SUCCEEDED', 1, $2, $3, $4, $5, $6, $7, $8)`,
+      [randomUUID(), value.actorRef, value.targetRef, value.fieldRef, value.correlationId, value.requestId, value.authorizationContextRef, value.purpose],
+    );
+  } catch (error) {
+    await client.query("rollback to savepoint disclosure_audit_insert");
+    if (!(error instanceof Error)
+      || !("code" in error)
+      || !("constraint" in error)
+      || error.code !== "23505"
+      || error.constraint !== "audit_disclosure_request_unique") throw error;
+  } finally {
+    await client.query("release savepoint disclosure_audit_insert");
+  }
 }
