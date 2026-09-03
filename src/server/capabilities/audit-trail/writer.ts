@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { PoolClient } from "pg";
+import { auditCategories } from "../../observability/classifications";
 
 const auditEventSchema = z.object({
-  category: z.enum(["AUTHENTICATION", "AUTHORIZATION", "SENSITIVE_READ", "BOOKING_MUTATION", "CONFIGURATION_MUTATION", "SECURITY_FAILURE", "AUDIT_ACCESS"]),
+  category: z.enum(auditCategories),
   action: z.string().min(1).max(100).regex(/^[A-Z_]+$/), outcome: z.enum(["SUCCEEDED", "DENIED", "FAILED", "DEGRADED_AUDIT"]),
   actorRef: z.string().uuid(), targetRef: z.string().uuid(), fieldRef: z.enum(["CPF", "PICKUP_ADDRESS"]).optional(),
   correlationId: z.string().uuid().optional(), idempotencyRef: z.string().uuid().optional(), authorizationContextRef: z.string().uuid().optional(), reasonCode: z.string().min(1).max(100).regex(/^[A-Z_]+$/).optional(),

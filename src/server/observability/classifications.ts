@@ -1,0 +1,21 @@
+export const operationalClassifications = [
+  "AUDIT_WRITE",
+  "BOOKING_CONFIRMATION",
+  "AUTHENTICATION",
+  "ADMIN_SESSION",
+  "SENSITIVE_DISCLOSURE",
+  "TRACKING_PROOF",
+  "TRACKING_STATUS",
+  "RESOURCE_CONTROL",
+  "RETENTION",
+] as const;
+
+export const auditCategories = [
+  "AUTHENTICATION",
+  "AUTHORIZATION",
+  "SENSITIVE_READ",
+  "BOOKING_MUTATION",
+  "CONFIGURATION_MUTATION",
+  "SECURITY_FAILURE",
+  "AUDIT_ACCESS",
+] as const;
