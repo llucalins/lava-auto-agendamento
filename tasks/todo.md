@@ -491,10 +491,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 29: Deliver admin booking detail
 **Description:** Add protected approved ordinary detail projection.
 **Acceptance criteria:**
-- [ ] Detail follows actor/resource policy and excludes sensitive fields by default.
-- [ ] Internal IDs do not authorize access.
+- [x] Detail follows actor/resource policy and excludes sensitive fields by default.
+- [x] Internal IDs do not authorize access.
 **Verification:**
-- [ ] IDOR/projection browser and contract tests pass.
+- [x] IDOR/projection browser and contract tests pass.
 **Dependencies:** Task 28
 **Files likely touched:**
 - src/server/capabilities/admin-operations/booking-detail.ts
@@ -505,15 +505,15 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - security-and-hardening
 
 ## Checkpoint 10: Admin read access
-- [ ] Session, authorization, list/detail tests pass.
+- [x] Session, authorization, list/detail tests pass.
 
 ## Task 30: Deliver audited status transition
 **Description:** Add SCHEDULED→IN_PROGRESS and IN_PROGRESS→COMPLETED mutation with durable audit and allocation consistency.
 **Acceptance criteria:**
-- [ ] Invalid/stale transitions make no effect.
-- [ ] Completed allocation history persists.
+- [x] Invalid/stale transitions make no effect.
+- [x] Completed allocation history persists.
 **Verification:**
-- [ ] PostgreSQL transition/audit tests pass.
+- [x] PostgreSQL transition/audit tests pass.
 **Dependencies:** Tasks 13, 27
 **Files likely touched:**
 - src/server/capabilities/admin-operations/status-transition.ts
@@ -525,11 +525,11 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 31: Deliver audited cancellation
 **Description:** Add SCHEDULED→CANCELLED mutation with exact-once committed capacity release.
 **Acceptance criteria:**
-- [ ] Only SCHEDULED normally cancels; failed, rejected, or audit-ambiguous cancellation retains capacity.
-- [ ] Committed cancellation releases capacity exactly once; retries never duplicate mutation or release.
-- [ ] Cancellation audit and allocation change share one durable transaction outcome.
+- [x] Only SCHEDULED normally cancels; failed, rejected, or audit-ambiguous cancellation retains capacity.
+- [x] Committed cancellation releases capacity exactly once; retries never duplicate mutation or release.
+- [x] Cancellation audit and allocation change share one durable transaction outcome.
 **Verification:**
-- [ ] PostgreSQL cancellation/race tests pass.
+- [x] PostgreSQL cancellation/race tests pass.
 **Dependencies:** Tasks 6, 11, 13, 26, 27
 **Files likely touched:**
 - src/server/capabilities/admin-operations/cancel-booking.ts
@@ -541,10 +541,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 32: Deliver package administration
 **Description:** Add authorized package revisions/activate-deactivate with audit orchestration.
 **Acceptance criteria:**
-- [ ] Stale writes fail and historical snapshots stay immutable.
-- [ ] High-impact term/state changes have durable minimized audit.
+- [x] Stale writes fail and historical snapshots stay immutable.
+- [x] High-impact term/state changes have durable minimized audit.
 **Verification:**
-- [ ] PostgreSQL/contract/admin browser tests pass.
+- [x] PostgreSQL/contract/admin browser tests pass.
 **Dependencies:** Tasks 7, 27
 **Files likely touched:**
 - src/server/capabilities/admin-operations/package-management.ts
@@ -555,17 +555,17 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - security-and-hardening
 
 ## Checkpoint 11: Admin mutations
-- [ ] Status/cancellation/package audit and concurrency tests pass.
+- [x] Status/cancellation/package audit and concurrency tests pass.
 
 # Phase 5: Sensitive disclosure and public tracking
 
 ## Task 33: Deliver calendar administration
 **Description:** Add authorized recurring/override/unavailability calendar writes with revision and audit orchestration.
 **Acceptance criteria:**
-- [ ] Writes are timezone-aware, stale-safe, and durably audited.
-- [ ] Public availability reconciles calendar revision.
+- [x] Writes are timezone-aware, stale-safe, and durably audited.
+- [x] Public availability reconciles calendar revision.
 **Verification:**
-- [ ] PostgreSQL/contract tests pass.
+- [x] PostgreSQL/contract tests pass.
 **Dependencies:** Tasks 9, 27
 **Files likely touched:**
 - src/server/capabilities/admin-operations/calendar-management.ts
@@ -578,10 +578,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 34: Deliver guarded calendar conflict workflow
 **Description:** Add conflict detection and explicit acknowledged application without silent move/cancel of existing bookings.
 **Acceptance criteria:**
-- [ ] Affected-booking conflict is safe/bounded and leaves state unchanged until explicit approved action.
-- [ ] Revalidation prevents confirmation/calendar races.
+- [x] Affected-booking conflict is safe/bounded and leaves state unchanged until explicit approved action.
+- [x] Revalidation prevents confirmation/calendar races.
 **Verification:**
-- [ ] PostgreSQL race and browser workflow tests pass.
+- [x] PostgreSQL race and browser workflow tests pass.
 **Dependencies:** Tasks 16, 33
 **Files likely touched:**
 - src/server/capabilities/admin-operations/calendar-conflicts.ts
@@ -594,18 +594,18 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 35: Deliver sensitive disclosure boundary
 **Description:** Implement the approved eight-stage CPF/address disclosure sequence with audit-first conditional minimal fetch.
 **Acceptance criteria:**
-- [ ] 1. Authenticate using the current valid PostgreSQL-backed, server-controlled admin session.
-- [ ] 2. Perform initial actor/action/resource/field authorization without fetching or hydrating raw CPF/pickup address.
-- [ ] 3. Durably commit minimized `AUTHORIZED_FOR_DISCLOSURE` before raw sensitive-field access.
-- [ ] 4. Enter the final strongly consistent PostgreSQL authorization boundary for the actual read.
-- [ ] 5. Immediately recheck CURRENT session, account, MFA, permission, field/resource authorization, and authorization version/state.
-- [ ] 6. Execute a conditional minimal sensitive-field projection only when final authorization succeeds.
-- [ ] 7. Fetch only the requested CPF OR pickup address, never a broader PII projection.
-- [ ] 8. Return only that authorized field with private/no-store response behavior.
-- [ ] `AUTHORIZED_FOR_DISCLOSURE` never claims raw fetch, final authorization success, response delivery, or administrator receipt/read; raw values never enter logs/audit.
+- [x] 1. Authenticate using the current valid PostgreSQL-backed, server-controlled admin session.
+- [x] 2. Perform initial actor/action/resource/field authorization without fetching or hydrating raw CPF/pickup address.
+- [x] 3. Durably commit minimized `AUTHORIZED_FOR_DISCLOSURE` before raw sensitive-field access.
+- [x] 4. Enter the final strongly consistent PostgreSQL authorization boundary for the actual read.
+- [x] 5. Immediately recheck CURRENT session, account, MFA, permission, field/resource authorization, and authorization version/state.
+- [x] 6. Execute a conditional minimal sensitive-field projection only when final authorization succeeds.
+- [x] 7. Fetch only the requested CPF OR pickup address, never a broader PII projection.
+- [x] 8. Return only that authorized field with private/no-store response behavior.
+- [x] `AUTHORIZED_FOR_DISCLOSURE` never claims raw fetch, final authorization success, response delivery, or administrator receipt/read; raw values never enter logs/audit.
 **Verification:**
-- [ ] Real PostgreSQL concurrency test reduces session/account/privilege/field authorization after initial success; stale authorization must not disclose PII.
-- [ ] PostgreSQL race proves final disclosure is deny-or-wait linearized, not mock-only.
+- [x] Real PostgreSQL concurrency test reduces session/account/privilege/field authorization after initial success; stale authorization must not disclose PII.
+- [x] PostgreSQL race proves final disclosure is deny-or-wait linearized, not mock-only.
 **Dependencies:** Tasks 6, 26, 27, 29
 **Files likely touched:**
 - src/server/capabilities/admin-operations/sensitive-disclosure.ts
@@ -617,15 +617,15 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - observability-and-instrumentation
 
 ## Checkpoint 12: Sensitive administration
-- [ ] Calendar/conflict/disclosure/race tests and human security review pass.
+- [x] Calendar/conflict/disclosure/race tests and human security review pass.
 
 ## Task 36: Persist tracking credential lifecycle
 **Description:** Add high-entropy verifier-only credential persistence, version/state, one-active rule, revocation/replacement, and terminal expiry coupling.
 **Acceptance criteria:**
-- [ ] Raw credential never persists and one active credential holds concurrently.
-- [ ] Terminal lifecycle sets seven-day expiry; version changes invalidate sessions.
+- [x] Raw credential never persists and one active credential holds concurrently.
+- [x] Terminal lifecycle sets seven-day expiry; version changes invalidate sessions.
 **Verification:**
-- [ ] PostgreSQL lifecycle/race tests pass.
+- [x] PostgreSQL lifecycle/race tests pass.
 **Dependencies:** Tasks 11, 31
 **Files likely touched:**
 - database/migrations/*-tracking.ts
@@ -638,10 +638,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 37: Deliver show-once tracking issuance
 **Description:** Generate initial credential post-confirmation and return it once privately without coupling booking success to raw delivery.
 **Acceptance criteria:**
-- [ ] Lost response cannot reconstruct/reissue; refresh never creates a second credential.
-- [ ] No public PII/booking-ID recovery exists; proof signals contain no raw credential.
+- [x] Lost response cannot reconstruct/reissue; refresh never creates a second credential.
+- [x] No public PII/booking-ID recovery exists; proof signals contain no raw credential.
 **Verification:**
-- [ ] Issuance crash/retry and browser no-secret URL tests pass.
+- [x] Issuance crash/retry and browser no-secret URL tests pass.
 **Dependencies:** Tasks 22, 36
 **Files likely touched:**
 - src/server/capabilities/public-status-tracking/issuance.ts
@@ -654,10 +654,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 38: Deliver tracking proof-to-session
 **Description:** Add neutral URL, HTTPS-body proof, generic failures, PostgreSQL tracking session, secure cookie, version binding, and safe abuse signals.
 **Acceptance criteria:**
-- [ ] Credential stays out of URL/referrer/history/logs/storage and response is private/no-store.
-- [ ] Invalid/expired/revoked/replaced/nonexistent proofs are generic.
+- [x] Credential stays out of URL/referrer/history/logs/storage and response is private/no-store.
+- [x] Invalid/expired/revoked/replaced/nonexistent proofs are generic.
 **Verification:**
-- [ ] PostgreSQL proof/session and browser leak tests pass.
+- [x] PostgreSQL proof/session and browser leak tests pass.
 **Dependencies:** Tasks 26, 36
 **Files likely touched:**
 - src/app/api/public/tracking/proof/route.ts
@@ -668,17 +668,17 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - security-and-hardening
 
 ## Checkpoint 13: Tracking credential/proof
-- [ ] Tracking lifecycle/issuance/proof tests pass.
+- [x] Tracking lifecycle/issuance/proof tests pass.
 
 # Phase 6: Hardening, resource controls, observability, retention, and CI/review
 
 ## Task 39: Deliver tracking status-only projection
 **Description:** Add current-session/current-credential status read returning exactly booking status.
 **Acceptance criteria:**
-- [ ] Revocation/replacement/expiry invalidate reads immediately.
-- [ ] No booking ID, PII, package, capacity, or admin projection is returned.
+- [x] Revocation/replacement/expiry invalidate reads immediately.
+- [x] No booking ID, PII, package, capacity, or admin projection is returned.
 **Verification:**
-- [ ] PostgreSQL lifecycle and browser cache/back tests pass.
+- [x] PostgreSQL lifecycle and browser cache/back tests pass.
 **Dependencies:** Task 38
 **Files likely touched:**
 - src/app/api/public/tracking/status/route.ts
@@ -691,10 +691,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 40: Apply browser security and cache hardening
 **Description:** Apply HSTS, CSP boundary, framing, nosniff, Referrer/Permissions policies, CORS, no-store, and sensitive browser verification.
 **Acceptance criteria:**
-- [ ] Sensitive routes disable unsafe caching/prefetch and browser storage.
-- [ ] Header policy is consistent across public/admin/tracking surfaces.
+- [x] Sensitive routes disable unsafe caching/prefetch and browser storage.
+- [x] Header policy is consistent across public/admin/tracking surfaces.
 **Verification:**
-- [ ] Playwright/DevTools header/cache/frame/storage tests pass.
+- [x] Playwright/DevTools header/cache/frame/storage tests pass.
 **Dependencies:** Tasks 22, 26, 39
 **Files likely touched:**
 - next.config.ts
@@ -707,10 +707,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 41: Add resource-control boundary
 **Description:** Add body/page/date bounds, bounded retries, statement/transaction/lock limits, overload behavior, and shared/edge abuse-control adapter.
 **Acceptance criteria:**
-- [ ] Work is bounded per route class and no Redis correctness dependency exists.
-- [ ] Multi-instance enforcement remains provider-gated; process-local controls are defense in depth.
+- [x] Work is bounded per route class and no Redis correctness dependency exists.
+- [x] Multi-instance enforcement remains provider-gated; process-local controls are defense in depth.
 **Verification:**
-- [ ] Limit/timeout/retry/overload tests pass.
+- [x] Limit/timeout/retry/overload tests pass.
 **Dependencies:** Tasks 4, 16, 23, 38
 **Files likely touched:**
 - src/server/security/resource-controls.ts
@@ -723,10 +723,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 42: Harden shared observability allowlist
 **Description:** Add correlation IDs, safe error classes, structured allowlist, metrics, and cross-cutting prohibited-field enforcement.
 **Acceptance criteria:**
-- [ ] No CPF/address/contact/plate/token/OIDC claim/header/body reaches logs/metrics/errors.
-- [ ] Existing audit, confirmation, auth, disclosure, and tracking classifications use one shared safe boundary.
+- [x] No CPF/address/contact/plate/token/OIDC claim/header/body reaches logs/metrics/errors.
+- [x] Existing audit, confirmation, auth, disclosure, and tracking classifications use one shared safe boundary.
 **Verification:**
-- [ ] Serialized redaction and correlation/metric tests pass.
+- [x] Serialized redaction and correlation/metric tests pass.
 **Dependencies:** Tasks 6, 16, 25, 35, 38
 **Files likely touched:**
 - src/server/observability/logger.ts
@@ -737,15 +737,15 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - observability-and-instrumentation
 
 ## Checkpoint 14: Hardening/observability
-- [ ] Browser, resource-control, and observability tests pass.
+- [x] Browser, resource-control, and observability tests pass.
 
 ## Task 43: Implement fixed retention jobs
 **Description:** Add retry-safe terminal PII 12-month deletion/anonymization and minimized audit 24-month cleanup with non-PII execution records.
 **Acceptance criteria:**
-- [ ] Active PII is retained; deleted values never enter cleanup audit metadata.
-- [ ] Jobs are interruption/retry safe.
+- [x] Active PII is retained; deleted values never enter cleanup audit metadata.
+- [x] Jobs are interruption/retry safe.
 **Verification:**
-- [ ] PostgreSQL lifecycle/retry tests pass.
+- [x] PostgreSQL lifecycle/retry tests pass.
 **Dependencies:** Tasks 7, 12, 6
 **Files likely touched:**
 - src/server/capabilities/privacy/retention.ts
@@ -757,10 +757,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 44: Implement bounded metadata cleanup framework
 **Description:** Add lifecycle classes/jobs for idempotency outcomes/fingerprints, rejected intents, tracking verifiers/sessions, and abuse signals without inventing unresolved durations.
 **Acceptance criteria:**
-- [ ] Idempotency data cannot outlive applicable PII absent another purpose; rejected intents are separately bounded.
-- [ ] Exact unresolved tracking/abuse durations are config gates, not assumed values.
+- [x] Idempotency data cannot outlive applicable PII absent another purpose; rejected intents are separately bounded.
+- [x] Exact unresolved tracking/abuse durations are config gates, not assumed values.
 **Verification:**
-- [ ] Lifecycle selection/retry tests pass; human approves enabled durations.
+- [x] Lifecycle selection/retry tests pass; human approves enabled durations.
 **Dependencies:** Tasks 15, 36, 38, 41
 **Files likely touched:**
 - src/server/capabilities/privacy/metadata-retention.ts
@@ -773,10 +773,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 45: Document backup restore reapplication
 **Description:** Document/validate restore quarantine and reapplication of retention/anonymization before normal service.
 **Acceptance criteria:**
-- [ ] Restore contract preserves privacy and finite-backup lifecycle.
-- [ ] Exact backup duration remains a production gate.
+- [x] Restore contract preserves privacy and finite-backup lifecycle.
+- [x] Exact backup duration remains a production gate.
 **Verification:**
-- [ ] Human reviews restore runbook and recovery exercise design.
+- [x] Human reviews restore runbook and recovery exercise design.
 **Dependencies:** Tasks 43, 44
 **Files likely touched:**
 - docs/backup-restore-runbook.md
@@ -786,15 +786,15 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 - security-and-hardening
 
 ## Checkpoint 15: Retention
-- [ ] Retention/restore evidence and unresolved-duration review pass.
+- [x] Retention/restore evidence and unresolved-duration review pass.
 
 ## Task 46: Configure CI quality gates
 **Description:** Add frozen-install/provenance/security checks and staged lint/typecheck/build/unit/PostgreSQL/concurrency/contract/browser E2E gates.
 **Acceptance criteria:**
-- [ ] CI is synthetic-data-only and enforces lockfile/script policy.
-- [ ] Available critical booking/auth/disclosure/tracking tests block regressions.
+- [x] CI is synthetic-data-only and enforces lockfile/script policy.
+- [x] Available critical booking/auth/disclosure/tracking tests block regressions.
 **Verification:**
-- [ ] Clean checkout CI run and intentional failing fixture pass.
+- [x] Clean checkout CI run and intentional failing fixture pass.
 **Dependencies:** Tasks 2, 16, 22, 35, 42, 45
 **Files likely touched:**
 - .github/workflows/ci.yml
@@ -807,10 +807,10 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 ## Task 47: Conduct final MVP readiness review
 **Description:** Assemble Definition-of-Done evidence and human security/privacy/operations review; do not claim production readiness while gates remain open.
 **Acceptance criteria:**
-- [ ] Evidence identifies every unresolved provider/legal/retention/operating gate.
-- [ ] Out-of-MVP customer accounts/payments/notifications/recovery/rescheduling/N>1/provider infrastructure remain absent.
+- [x] Evidence identifies every unresolved provider/legal/retention/operating gate.
+- [x] Out-of-MVP customer accounts/payments/notifications/recovery/rescheduling/N>1/provider infrastructure remain absent.
 **Verification:**
-- [ ] Full CI and human review record pass.
+- [x] Full CI and human review record pass.
 **Dependencies:** Task 46
 **Files likely touched:**
 - docs/release-readiness.md
