@@ -86,15 +86,24 @@ export async function findSelectableStarts(
        cross join selected_package package
        cross join app.operating_calendar calendar
      ), resolved_window as (
-       select candidate.*,
-              coalesce(override.starts_at, recurring.starts_at) as starts_at,
-              coalesce(override.ends_at, recurring.ends_at) as ends_at,
-              override.is_closed
+       select candidate.*, rule.starts_at, rule.ends_at, rule.is_closed
        from candidate
-       left join app.calendar_overrides override
-         on override.calendar_date = candidate.local_date
-       left join app.calendar_recurring_windows recurring
-         on recurring.weekday = extract(dow from candidate.local_date)::integer
+       cross join lateral (
+         select override.starts_at, override.ends_at, override.is_closed
+         from app.calendar_overrides override
+         where override.calendar_date = candidate.local_date
+           and override.revision = candidate.calendar_revision
+         union all
+         select recurring.starts_at, recurring.ends_at, false
+         from app.calendar_recurring_windows recurring
+         where recurring.weekday = extract(dow from candidate.local_date)::integer
+           and recurring.revision = candidate.calendar_revision
+           and not exists (
+             select 1 from app.calendar_overrides override
+             where override.calendar_date = candidate.local_date
+               and override.revision = candidate.calendar_revision
+           )
+       ) rule
      ), window_bounds as (
        select *,
               (local_date + starts_at) at time zone timezone as window_start,
@@ -112,7 +121,8 @@ export async function findSelectableStarts(
        and not exists (
          select 1
          from app.calendar_unavailability unavailability
-         where unavailability.starts_at < candidate.service_end
+         where unavailability.revision = candidate.calendar_revision
+           and unavailability.starts_at < candidate.service_end
            and unavailability.ends_at > candidate.start
        )
      order by candidate.start`,

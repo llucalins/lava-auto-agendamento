@@ -72,44 +72,42 @@ describe("package-duration calendar bounds", () => {
 
   it("requires the complete interval to fit, preserves half-open boundaries, and applies overrides", async () => {
     const pool = createIntegrationPool();
-    await pool.query("insert into app.operating_calendar default values on conflict do nothing");
-    await pool.query(
-      "insert into app.calendar_recurring_windows values (0, '08:00', '12:00', 1) on conflict do nothing",
-    );
-    await pool.query("insert into app.service_packages values ($1, 1)", [packageId]);
-    await pool.query(
-      "insert into app.service_package_revisions values ($1, 1, 'Bounded', null, 0, 30, 'ACTIVE')",
-      [packageId],
-    );
-    await pool.query(
-      "insert into app.calendar_unavailability values ($1, $2, $3, 1)",
-      [randomUUID(), "2026-09-06T14:00:00Z", "2026-09-06T14:30:00Z"],
-    );
-    await pool.query(
-      "insert into app.calendar_overrides values ('2026-09-13', null, null, true, 1) on conflict do nothing",
-    );
-    await pool.query(
-      "insert into app.calendar_overrides values ('2026-09-20', '09:00', '10:00', false, 1) on conflict do nothing",
-    );
+    const client = await pool.connect();
+    try {
+      await client.query("begin");
+      await client.query("insert into app.operating_calendar default values on conflict do nothing");
+      const current = await client.query<{ revision: number }>("select revision from app.operating_calendar where calendar_id = true for update");
+      const revision = current.rows[0]!.revision + 1;
+      await client.query("insert into app.calendar_recurring_windows (weekday, starts_at, ends_at, revision) values (0, '08:00', '12:00', $1)", [revision]);
+      await client.query("update app.operating_calendar set revision = $1 where calendar_id = true", [revision]);
+      await client.query("insert into app.service_packages values ($1, 1)", [packageId]);
+      await client.query("insert into app.service_package_revisions values ($1, 1, 'Bounded', null, 0, 30, 'ACTIVE')", [packageId]);
+      await client.query("insert into app.calendar_unavailability values ($1, $2, $3, $4)", [randomUUID(), "2026-09-06T14:00:00Z", "2026-09-06T14:30:00Z", revision]);
+      await client.query("insert into app.calendar_overrides (calendar_date, starts_at, ends_at, is_closed, revision) values ('2026-09-13', null, null, true, $1)", [revision]);
+      await client.query("insert into app.calendar_overrides (calendar_date, starts_at, ends_at, is_closed, revision) values ('2026-09-20', '09:00', '10:00', false, $1)", [revision]);
 
-    const available = await findSelectableStarts(pool, {
-      packageId,
-      starts: [
-        new Date("2026-09-06T13:30:00Z"),
-        new Date("2026-09-06T14:00:00Z"),
-        new Date("2026-09-06T14:30:00Z"),
-        new Date("2026-09-06T14:45:00Z"),
-        new Date("2026-09-13T14:30:00Z"),
-        new Date("2026-09-20T12:30:00Z"),
-        new Date("2026-09-20T14:00:00Z"),
-      ],
-    });
+      const available = await findSelectableStarts(client, {
+        packageId,
+        starts: [
+          new Date("2026-09-06T13:30:00Z"),
+          new Date("2026-09-06T14:00:00Z"),
+          new Date("2026-09-06T14:30:00Z"),
+          new Date("2026-09-06T14:45:00Z"),
+          new Date("2026-09-13T14:30:00Z"),
+          new Date("2026-09-20T12:30:00Z"),
+          new Date("2026-09-20T14:00:00Z"),
+        ],
+      });
 
-    expect(available.map(({ start }) => start)).toEqual([
-      "2026-09-06T13:30:00.000Z",
-      "2026-09-06T14:30:00.000Z",
-      "2026-09-20T12:30:00.000Z",
-    ]);
-    await pool.end();
+      expect(available.map(({ start }) => start)).toEqual([
+        "2026-09-06T13:30:00.000Z",
+        "2026-09-06T14:30:00.000Z",
+        "2026-09-20T12:30:00.000Z",
+      ]);
+    } finally {
+      await client.query("rollback").catch(() => undefined);
+      client.release();
+      await pool.end();
+    }
   });
 });

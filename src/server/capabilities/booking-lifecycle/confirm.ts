@@ -12,6 +12,7 @@ import {
 import { persistBookingPii } from "./pii-repository";
 import { createScheduledBooking } from "./repository";
 import { findSelectableStarts } from "../operating-calendar/availability";
+import { acquireCalendarConfirmationLock } from "../operating-calendar/coordination";
 import { applyTransactionResourceLimits } from "../../security/resource-controls";
 
 const operationScope = "public.booking.confirm";
@@ -94,6 +95,7 @@ async function confirmInTransaction(
   try {
     await client.query("begin isolation level serializable");
     await applyTransactionResourceLimits(client);
+    await acquireCalendarConfirmationLock(client, "CONFIRMATION");
     await client.query("select pg_advisory_xact_lock(hashtextextended($1, 0))", [
       `${operationScope}:${command.intentKey}`,
     ]);
