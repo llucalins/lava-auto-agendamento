@@ -71,6 +71,7 @@ jobs:
       PGPASSWORD: ci-bootstrap-only
       DATABASE_URL: postgresql://lava_test:ci-runtime-only@localhost:5432/lava_auto
       MIGRATION_DATABASE_URL: postgresql://lava_migrator:ci-migration-only@localhost:5432/lava_auto
+      CLEAN_CHAIN_MIGRATION_DATABASE_URL: postgresql://lava_migrator:ci-migration-only@localhost:5432/lava_auto_agendamento_chain_test
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -89,9 +90,13 @@ jobs:
           create role lava_migrator login password 'ci-migration-only' nosuperuser nocreatedb nocreaterole noinherit;
           create role lava_test login password 'ci-runtime-only' nosuperuser nocreatedb nocreaterole noinherit;
           create database lava_auto owner lava_migrator;
+          create database lava_auto_agendamento_chain_test owner lava_migrator;
           SQL
       - name: Fresh migration chain
-        run: node ./node_modules/node-pg-migrate/bin/node-pg-migrate.js up -d MIGRATION_DATABASE_URL -m database/migrations -t lava_migrations --single-transaction
+        run: |
+          for migration_database_url in "$MIGRATION_DATABASE_URL" "$CLEAN_CHAIN_MIGRATION_DATABASE_URL"; do
+            MIGRATION_DATABASE_URL="$migration_database_url" node ./node_modules/node-pg-migrate/bin/node-pg-migrate.js up -d MIGRATION_DATABASE_URL -m database/migrations -t lava_migrations --single-transaction
+          done
       - name: PostgreSQL contract gate
         run: npm test -- tests/contract
       - name: PostgreSQL integration and concurrency gates

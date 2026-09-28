@@ -22,6 +22,22 @@ export function inspectCiPolicy(input) {
   if (!input.workflow.includes("DATABASE_URL: postgresql://lava_test:")) {
     errors.push("CI must use the restricted runtime database role");
   }
+  if (!input.workflow.includes("create database lava_auto_agendamento_chain_test owner lava_migrator;")) {
+    errors.push("CI must create the clean-chain database with the migration role as owner");
+  }
+  if (!/^\s*CLEAN_CHAIN_MIGRATION_DATABASE_URL:\s+postgresql:\/\/lava_migrator:[^@\s]+@[^/\s]+\/lava_auto_agendamento_chain_test\s*$/m.test(input.workflow)) {
+    errors.push("CI must address the clean-chain database through the migration role");
+  }
+  if (!input.workflow.includes('for migration_database_url in "$MIGRATION_DATABASE_URL" "$CLEAN_CHAIN_MIGRATION_DATABASE_URL"; do')
+      || !input.workflow.includes('MIGRATION_DATABASE_URL="$migration_database_url" node ./node_modules/node-pg-migrate/bin/node-pg-migrate.js up')) {
+    errors.push("CI must migrate the clean-chain database together with the primary database");
+  }
+  if (!/create role lava_test login password '[^']+' nosuperuser nocreatedb nocreaterole noinherit;/.test(input.workflow)) {
+    errors.push("CI must keep lava_test as a restricted runtime database role");
+  }
+  if (!packageJson.scripts?.["test:browser"]?.includes("--env-file-if-exists=.env.local")) {
+    errors.push("browser tests must use an optional local env file");
+  }
   return errors;
 }
 
