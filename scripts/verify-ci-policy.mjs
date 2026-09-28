@@ -22,6 +22,12 @@ export function inspectCiPolicy(input) {
   if (!input.workflow.includes("DATABASE_URL: postgresql://lava_test:")) {
     errors.push("CI must use the restricted runtime database role");
   }
+  if (!input.workflow.includes("create database lava_auto_agendamento_chain_test owner lava_migrator;")) {
+    errors.push("CI must create the clean-chain database with the migration role as owner");
+  }
+  if (!packageJson.scripts?.["test:browser"]?.includes("--env-file-if-exists=.env.local")) {
+    errors.push("browser tests must use an optional local env file");
+  }
   return errors;
 }
 

@@ -89,6 +89,7 @@ jobs:
           create role lava_migrator login password 'ci-migration-only' nosuperuser nocreatedb nocreaterole noinherit;
           create role lava_test login password 'ci-runtime-only' nosuperuser nocreatedb nocreaterole noinherit;
           create database lava_auto owner lava_migrator;
+          create database lava_auto_agendamento_chain_test owner lava_migrator;
           SQL
       - name: Fresh migration chain
         run: node ./node_modules/node-pg-migrate/bin/node-pg-migrate.js up -d MIGRATION_DATABASE_URL -m database/migrations -t lava_migrations --single-transaction

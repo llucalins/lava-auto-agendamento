@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { loadEnvFile } from "node:process";
 
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { Pool } from "pg";
@@ -7,8 +6,6 @@ import { Pool } from "pg";
 import { createLocalSession } from "../../src/server/capabilities/admin-access/sessions";
 import { persistBookingPii } from "../../src/server/capabilities/booking-lifecycle/pii-repository";
 import { createScheduledBooking } from "../../src/server/capabilities/booking-lifecycle/repository";
-
-loadEnvFile(".env.local");
 
 test("reveals one audited field privately without placing PII or reasons in the URL or browser storage", async ({ context, page }) => {
   const pool = createPool();

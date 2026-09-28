@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { loadEnvFile } from "node:process";
 
 import { expect, test, type BrowserContext } from "@playwright/test";
 import { Pool } from "pg";
@@ -8,7 +7,21 @@ import { createLocalSession } from "../../src/server/capabilities/admin-access/s
 import { replaceCalendar } from "../../src/server/capabilities/admin-operations/calendar-management";
 import { createScheduledBooking } from "../../src/server/capabilities/booking-lifecycle/repository";
 
-loadEnvFile(".env.local");
+test("keeps calendar controls disabled until client hydration", async ({ browser }) => {
+  const pool = createPool();
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const owner = await createActor(pool, "OWNER");
+    await addSessionCookies(context, owner);
+    const page = await context.newPage();
+
+    expect((await page.goto("/admin/calendar"))?.status()).toBe(200);
+    await expect(page.getByLabel("Data local em America/Fortaleza")).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Revisar e aplicar fechamento" })).toBeDisabled();
+  } finally {
+    await Promise.all([context.close(), pool.end()]);
+  }
+});
 
 test("an OWNER reviews and explicitly acknowledges a calendar conflict without changing the booking", async ({ context, page }) => {
   const pool = createPool();

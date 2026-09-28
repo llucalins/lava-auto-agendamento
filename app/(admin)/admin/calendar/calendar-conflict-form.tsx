@@ -1,12 +1,13 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 
 import type { CalendarConflict } from "../../../../src/server/capabilities/admin-operations/calendar-conflicts";
 import type { CalendarConfiguration } from "../../../../src/server/capabilities/admin-operations/calendar-management";
 
 type ConflictState = Readonly<{ count: number; rows: readonly CalendarConflict[] }> | null;
+const subscribeToHydration = () => () => {};
 
 export function CalendarConflictForm({ initialConfiguration }: { initialConfiguration: CalendarConfiguration }) {
   const router = useRouter();
@@ -15,6 +16,7 @@ export function CalendarConflictForm({ initialConfiguration }: { initialConfigur
   const [acknowledged, setAcknowledged] = useState(false);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,7 +71,7 @@ export function CalendarConflictForm({ initialConfiguration }: { initialConfigur
     <h2 id="closure-title">Fechar uma data</h2>
     <form onSubmit={submit}>
       <label htmlFor="closure-date">Data local em America/Fortaleza</label>
-      <input id="closure-date" name="closureDate" type="date" required value={date} onChange={(event) => {
+      <input id="closure-date" name="closureDate" type="date" required disabled={!hydrated || loading} value={date} onChange={(event) => {
         setDate(event.target.value);
         setConflict(null);
         setAcknowledged(false);
@@ -85,7 +87,7 @@ export function CalendarConflictForm({ initialConfiguration }: { initialConfigur
           Reconheço os conflitos e quero aplicar sem mover ou cancelar agendamentos.
         </label>
       </div> : null}
-      <button className="primary" type="submit" disabled={loading || !date || Boolean(conflict && !acknowledged)}>
+      <button className="primary" type="submit" disabled={!hydrated || loading || !date || Boolean(conflict && !acknowledged)}>
         {conflict ? "Aplicar fechamento reconhecido" : "Revisar e aplicar fechamento"}
       </button>
     </form>

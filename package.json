@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --passWithNoTests",
-    "test:browser": "playwright test --pass-with-no-tests"
+    "test:browser": "node --env-file-if-exists=.env.local ./node_modules/@playwright/test/cli.js test --pass-with-no-tests"
     ,"migrate": "node --env-file=.env.local ./node_modules/node-pg-migrate/bin/node-pg-migrate.js up -d MIGRATION_DATABASE_URL -m database/migrations -t lava_migrations --single-transaction"
   },
   "dependencies": {
