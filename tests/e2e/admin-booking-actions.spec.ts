@@ -12,6 +12,7 @@ test("an authenticated OWNER navigates bookings and performs essential audited a
   const pool = createPool();
   const auditPool = createAuditPool();
   try {
+    await pool.query("insert into app.operating_calendar default values on conflict do nothing");
     const session = await createOwnerSession(pool);
     await addSessionCookies(context, session);
     const [firstStart, secondStart] = await uniqueStartsToday(pool);

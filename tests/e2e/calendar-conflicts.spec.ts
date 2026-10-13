@@ -11,6 +11,7 @@ test.describe("before client hydration", () => {
   test("keeps calendar controls disabled until client hydration", async ({ context, page }) => {
     const pool = createPool();
     try {
+      await currentRevision(pool);
       const owner = await createActor(pool, "OWNER");
       await addSessionCookies(context, owner);
       let blockedClientScripts = 0;
