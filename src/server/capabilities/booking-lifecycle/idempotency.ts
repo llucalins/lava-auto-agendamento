@@ -19,6 +19,7 @@ const materialSchema = z
     licencePlate: z.string().trim().min(1).max(32),
     vehicleColor: z.string().trim().min(1).max(64),
     pickupAddress: z.string().trim().min(1).max(500).optional(),
+    reviewToken: z.string().min(32).max(2_048),
   })
   .superRefine((value, context) => {
     if (value.serviceMode === "PICKUP_REQUESTED" && !value.pickupAddress) {
@@ -92,6 +93,7 @@ function canonicalMaterial(value: ConfirmationMaterial): string {
     licencePlate: material.licencePlate.replace(/[^a-zA-Z0-9]/g, "").toUpperCase(),
     vehicleColor: normalizedText(material.vehicleColor),
     pickupAddress: material.pickupAddress && normalizedText(material.pickupAddress),
+    reviewToken: material.reviewToken,
   });
 }
 

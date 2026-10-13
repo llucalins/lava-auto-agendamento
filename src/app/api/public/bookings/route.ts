@@ -3,6 +3,7 @@ import { confirmBooking } from "../../../../server/capabilities/booking-lifecycl
 import { getDatabasePool } from "../../../../server/persistence/pool";
 import { issueInitialTrackingCredential, loadTrackingVerifierKey } from "../../../../server/capabilities/public-status-tracking/issuance";
 import { readBoundedJson, routeResourcePolicies, runWithRouteConcurrency } from "../../../../server/security/resource-controls";
+import { isPiiProcessingAllowed } from "../../../../server/security/pii-processing-gate";
 
 export async function POST(request: Request) {
   const headers = {
@@ -12,6 +13,9 @@ export async function POST(request: Request) {
     "referrer-policy": "no-referrer",
     "x-content-type-options": "nosniff",
   };
+  if (!isPiiProcessingAllowed(process.env)) {
+    return NextResponse.json({ kind: "UNAVAILABLE" }, { status: 503, headers });
+  }
   try {
     return await runWithRouteConcurrency("booking-confirmation", async () => {
     const body = await readBoundedJson(request, routeResourcePolicies["booking-confirmation"].maxBodyBytes) as { intentKey?: string; material?: Record<string, unknown> };

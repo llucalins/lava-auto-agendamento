@@ -8,6 +8,7 @@ import { applyGuardedCalendar } from "../../src/server/capabilities/admin-operat
 import { replaceCalendar } from "../../src/server/capabilities/admin-operations/calendar-management";
 import { confirmBooking } from "../../src/server/capabilities/booking-lifecycle/confirm";
 import { createScheduledBooking } from "../../src/server/capabilities/booking-lifecycle/repository";
+import { createBookingReview } from "../../src/server/capabilities/public-booking-flow/review";
 
 const pool = chainPool("DATABASE_URL");
 const auditPool = chainPool("MIGRATION_DATABASE_URL");
@@ -75,7 +76,7 @@ describe.sequential("guarded PostgreSQL calendar conflicts", () => {
     const opened = await publishOpenCalendar(owner.cookieValue);
     const packageId = await createPackage();
     const date = uniqueDate();
-    const request = confirmationCommand(packageId, new Date(`${date}T12:00:00Z`));
+    const request = await confirmationCommand(packageId, new Date(`${date}T12:00:00Z`));
     const [confirmationResult, calendarResult] = await Promise.all([
       confirmBooking(pool, request),
       applyGuardedCalendar(pool, owner.cookieValue, configuration(opened.revision, [date]), false),
@@ -118,10 +119,13 @@ async function createPackage(): Promise<string> {
   return packageId;
 }
 
-function confirmationCommand(packageId: string, serviceStart: Date) {
+async function confirmationCommand(packageId: string, serviceStart: Date) {
+  const fingerprintKey = "calendar-conflict-test-fingerprint-key";
+  const review = await createBookingReview(pool, { packageId, serviceStart }, fingerprintKey);
+  if (review.kind !== "READY") throw new Error("Expected selectable conflict fixture.");
   return {
     intentKey: `intent-${randomUUID().replace(/-/g, "")}`,
-    fingerprintKey: "calendar-conflict-test-fingerprint-key",
+    fingerprintKey,
     expiresAt: new Date(Date.now() + 60_000),
     material: {
       packageId,
@@ -136,6 +140,7 @@ function confirmationCommand(packageId: string, serviceStart: Date) {
       licencePlate: "TST1A23",
       vehicleColor: "Blue",
       pickupAddress: undefined,
+      reviewToken: review.reviewToken,
     },
   };
 }
