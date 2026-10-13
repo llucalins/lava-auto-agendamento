@@ -1,5 +1,7 @@
 # Ordered MVP Implementation Tasks
 
+> As 47 marcações abaixo são o registro histórico anterior à auditoria de 13/10/2026. Elas não constituem evidência atual de conclusão. O checklist corretivo da Sprint 01, ao final deste arquivo, é a fila operacional vigente.
+
 Each task uses synthetic data and runs lint/typecheck/build when the toolchain exists.
 
 # Phase 1: Dependency, toolchain, config, PostgreSQL, and audit foundations
@@ -818,3 +820,76 @@ Each task uses synthetic data and runs lint/typecheck/build when the toolchain e
 **Estimated scope:** S
 **Skills for implementation:**
 - code-review-and-quality
+
+---
+
+# Sprint 01 — backlog corretivo MVP Lean
+
+## P0 — bloqueia homologação
+
+- [ ] S01-01 Remediar dependências `high`/`critical` alcançáveis com versões mínimas revisadas. **Parcial:** runtime sem high/critical; auditoria completa ainda tem 5 high em tooling dev-only, sem waiver formal de proprietário.
+  - Aceite: audits de produção e completo sem achado alto/crítico não mitigado; atualização extraordinária do Next em 14/10 reavaliada.
+  - Verificar: audits, assinaturas, `npm test`, typecheck, lint e build.
+  - Arquivos: `package.json`, `package-lock.json`, `docs/dependency-review.md`.
+- [ ] S01-02 Corrigir encerramento do Playwright e regressão `/admin/calendar` do CI. **Parcial:** suíte local 29/29, encerrou com sucesso e `/admin/calendar` retornou 200; CI hospedado não foi executado.
+  - Aceite: processo encerra 0 e teste pré-hidratação usa a página real sem 404; alteração preexistente é preservada.
+  - Verificar: teste focado, suíte browser local e execução hospedada observada quando disponível.
+  - Arquivos: `playwright.config.ts`, workflow/testes estritamente necessários.
+- [x] S01-03 Implementar revisão pública autoritativa e confirmação vinculada ao snapshot revisado. **Concluída localmente:** E2E real navegador → API → PostgreSQL provou rejeição após mudança de preço/revisão do pacote e após bloqueio do calendário, sem booking/alocação e com intenção de rejeição registrada.
+  - Aceite: pacote/preço/duração/disponibilidade obsoletos impedem confirmação sem escrita.
+  - Verificar: `tests/e2e/public-booking-postgres.spec.ts` (2 reconciliações reais), integração e suíte Vitest: passou.
+- [x] S01-04 Provar dupla submissão, concorrência e recuperação após resposta perdida. **Concluída localmente:** duas submissões simultâneas do mesmo payload e retry após resposta abortada depois do commit passaram; PostgreSQL confirmou exatamente 1 booking, 1 alocação e 1 intenção; retry retornou `replayed: true`.
+  - Aceite: uma intenção gera uma reserva/alocação e replay devolve o resultado persistido.
+  - Verificar: E2E Playwright sem mock de confirmação e integração PostgreSQL: passou.
+- [ ] S01-05 Entregar login, lista, detalhe, mudança de status e cancelamento navegáveis. **Parcial:** lista/detalhe/status/cancelamento E2E com sessão sintética passou; autenticação OIDC real depende de configuração/provedor.
+  - Aceite: fluxo autenticado completo com autorização, CSRF, revisão otimista e auditoria server-side.
+  - Verificar: integração das rotas e Playwright autenticado.
+- [ ] S01-06 Validar startup, health/readiness e gate fail-closed de PII real. **Parcial:** validação estrita no `instrumentation.register`, `/api/health`, `/api/ready` e gate antes de ler confirmação; falta smoke de processo com ambiente de produção sintético.
+  - Aceite: produção rejeita configuração obrigatória ausente; readiness consulta PostgreSQL; resposta não revela detalhes.
+  - Verificar: testes de configuração/rota e smoke de processo.
+- [ ] S01-07 Preparar deploy, backup/restore/rollback e checklist de privacidade. **Parcial/bloqueada para schema:** runbook e Blueprint Render Free para demonstração sintética preparados; Neon autenticado/vinculado, projeto/branch confirmados, plano sem mudanças, plano gratuito confirmado, env pull isolado e conexão `pg` somente leitura validados. Em 13/10, catálogo confirmou zero tabelas/histórico, mas o Neon lista somente `neondb_owner`; `lava_migrator` e `lava_test` não existem. Não apliquei roles nem migrations para não usar o proprietário como substituto. Falta provisionar e comprovar credenciais/roles distintos e privilégio mínimo, revalidar extensão, executar migrations `up` revisadas, validar grants, rodar integração como runtime, restaurar backup sintético e receber decisões humanas de publicação.
+  - Aceite: instruções reproduzíveis e restore com dados sintéticos; qualquer dependência humana permanece OPEN.
+  - Verificar: exercício documentado e revisão contra a spec. Neon (13/10): `.neon` vinculado/ignorado; `neon config plan --branch production` = no changes, Postgres only; metadados `free_v3`; `.env.neon.local` com somente variáveis Postgres e ignorado; `pg` executou `SELECT 1` e contagem read-only do catálogo confirmou 0 tabelas no schema atual. Sem `neon deploy`, migration ou alteração de schema. Render: `render.yaml` validado localmente, sem sync/deploy e com PII desabilitada.
+**Atualização 13/10:** o bloqueio de schema/roles descrito em S01-07 foi resolvido conforme as evidências Neon abaixo; permanecem abertas a publicação Vercel, backup/restore, CI hospedado e aprovações humanas.
+- [ ] S01-08 Executar gates finais e revisão multidimensional.
+  - Aceite: evidência real para testes, types, lint, build, PostgreSQL, browser e audits; estado Git e bloqueios separados.
+  - Evidência local 13/10: `npm test` 39 arquivos/123 testes; `npm run test:browser -- --reporter=line --workers=1` 29/29, incluindo E2E PostgreSQL real; `npm run typecheck`, `npm run lint` e `npm run build` passaram. Playwright registrou aviso transitório `destination stream closed early` no cenário de pré-hidratação de calendário, mas cenário e suíte passaram. `node scripts/verify-ci-policy.mjs` foi executado em etapa anterior desta sprint; CI hospedado não executado.
+  - Evidência supply-chain: audit de produção 0; audit completo 5 high dev-only (`braces`); `npm audit signatures` verificou assinaturas de 426 pacotes e 101 attestations. CI hospedado e restore de provedor não executados.
+  - Verificação 13/10 após integração Neon: `npm test` 39 arquivos/123 testes; Playwright 29/29; typecheck, lint e build passaram; smoke PostgreSQL Neon `SELECT 1` passou. `npm audit --omit=dev`: zero vulnerabilidades. `npm audit`: 5 high apenas na cadeia dev `braces`/ESLint (sem `--force`). `render.yaml` segue com asserts locais previamente aprovados. Não executados: migration/alteração de schema, `neon deploy`, Render sync/deploy, CI hospedado, backup/restore.
+
+## P1 — necessário para operação eficiente do piloto
+
+- [x] S01-09 Disponibilizar edição essencial de pacotes/preços e calendário pelo navegador.
+  - Aceite: OWNER realiza operações sem chamada manual de API e conflitos não perdem alterações.
+- Evidência 13/10: `tests/e2e/admin-packages.spec.ts` e `tests/e2e/calendar-conflicts.spec.ts` passaram na suíte browser (25/25).
+- [ ] S01-10 Integrar logs essenciais allowlisted e controle de abuso proporcional a uma instância.
+  - Aceite: sem PII/segredo em logs e limitação local explicitamente incompatível com escala horizontal.
+- [x] S01-11 Exibir aviso de privacidade e minimização no formulário público.
+  - Aceite: finalidade operacional e gates pendentes claros; nenhum consentimento/base legal é inventado.
+- Evidência 13/10: aviso no formulário orienta somente dados sintéticos até aprovação; gate de produção nega confirmação real por padrão.
+
+## P2 — pós-MVP
+
+- [ ] SaaS multi-tenant, assinatura e cobrança online.
+- [ ] WhatsApp automático, relatórios/dashboards avançados e equipes sofisticadas.
+- [ ] Rate limit distribuído, infraestrutura multi-instância e tracking público ampliado.
+
+## Evidências — papéis Neon e schema inicial (13/10/2026)
+
+- [x] Projeto/branch Neon, plano Free somente PostgreSQL e banco vazio reconfirmados imediatamente antes da escrita.
+- [x] Criados `lava_migrator`, `lava_test` e `lava_app` sem associação administrativa Neon e sem `SUPERUSER`, `CREATEDB` ou `CREATEROLE`; runtime herda os grants de `lava_test` e não tem `CREATE` no banco ou schemas.
+- [x] Aplicadas somente as migrations `up` 001–029, em transação única. Validados 22 tabelas `app`, 50 índices válidos, 242 constraints validadas, 29 registros de histórico, `btree_gist` 1.8 confiável e somente o seed sintético esperado de unidade de capacidade.
+- [x] Autenticação direta do migrator/teste e autenticação pooled de `lava_app` verificadas; grants efetivos de tabela/schema incluem a restrição da tabela PII.
+- [x] Verificação sintética isolada: `npm test` 39 arquivos/123 testes; E2E PostgreSQL real em navegador 4/4; Playwright completo 29/29. Alvo: banco local `lava_auto_agendamento_test`, não Neon production.
+- [ ] Projeto/ambiente Vercel ainda não configurado porque nenhum projeto foi vinculado. Próximo passo: cadastrar somente `DATABASE_URL` pooled de `lava_app` nas variáveis runtime protegidas da Vercel; manter `MIGRATION_DATABASE_URL` direto de `lava_migrator` fora do ambiente da aplicação.
+- [ ] Produção continua bloqueada até aprovar projeto/hosting e deploy Vercel, OIDC/MFA e bootstrap OWNER, privacidade/jurídico para PII, CI hospedado e exercício isolado de backup/restore. Não houve push, merge, deploy, PII real ou migration destrutiva.
+
+## Preparação Vercel — revisão local (13/10/2026)
+
+- [x] Branch e árvore revisadas; `.env.local`, `.env.neon.local` e `.neon` permanecem ignorados e fora do Git. Nenhum valor de credencial foi adicionado à árvore ou aos commits locais.
+- [x] Compatibilidade inspecionada: `engines.node` é `24.x`; Vercel lista 24.x como runtime disponível; Next 16 usa runtime Node.js nas rotas; `pg.Pool` usa o URL pooled Neon e operações SQL encontradas usam transações/advisory locks transacionais, sem dependência de estado de sessão. Migration segue separada do runtime.
+- [x] Reproduzida colisão entre fixtures E2E concorrentes e ausência de uma fixture administrativa na página limitada a 50 itens; Playwright foi serializado e o teste administrativo passou a usar horários livres de hoje.
+- [x] Verificação local após esses ajustes: `npm test` 39 arquivos/123 testes; `npm run test:browser` 29/29 (1 worker); `npm run typecheck`, `npm run lint` e `npm run build` passaram.
+- [ ] Publicar a branch para Vercel Preview somente após autorização do proprietário; hosted CI ainda não executado. Recomendação: PR para `main`, mantendo `main` como Production Branch da Vercel; não promover diretamente a branch `fix/hosted-ci-portability` a produção.
+- [ ] Vercel ainda requer configuração protegida de runtime; usar URL pooled de `lava_app`, nunca o URL direto do migrator. Usar um branch Neon de Preview isolado; não conectar Preview ao banco production.
+- [ ] Produção ainda depende de Vercel/OIDC/MFA/OWNER bootstrap, aprovação jurídica e operacional de privacidade/PII, CI hospedado e backup/restore exercitado. Manter `PII_PROCESSING_APPROVED=false`; nenhum deploy foi executado.
