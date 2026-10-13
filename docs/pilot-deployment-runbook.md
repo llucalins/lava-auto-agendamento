@@ -5,7 +5,7 @@ This is an operator checklist, not authorization to provision or deploy. Product
 ## Preconditions
 
 - Approve the hosting/PostgreSQL provider, region, processor terms, domain, TLS, and service owner.
-- Vercel Node.js functions scale across isolated instances. `runWithRouteConcurrency` is process-local and `createAbuseControl` has no configured shared provider; neither is global enforcement. Keep Preview private/synthetic and do not expose public production traffic until the owner selects and approves a shared abuse/rate-limit control. Node 24.x and PostgreSQL remain the intended runtime/database.
+- Vercel Node.js functions scale across isolated instances. `runWithRouteConcurrency` is process-local and `createAbuseControl` has no configured shared provider; neither is global enforcement. Use only synthetic data in Preview and treat its URL as public unless protection available on the Hobby plan is verified. Do not expose public production traffic until the owner selects and approves a shared abuse/rate-limit control. Node 24.x and PostgreSQL remain the intended runtime/database.
 - Create separate least-privilege runtime and migration credentials. Do not place `MIGRATION_DATABASE_URL` in the application runtime.
 - Generate independent server-only secrets for confirmation fingerprints and tracking verification; use HTTPS `APP_ORIGIN` and approved OIDC/MFA settings. Never copy `.env.example` placeholders into production.
 - Keep `PII_PROCESSING_APPROVED` unset or `false` until privacy/legal and operational owners approve actual fields, purpose, transparency, retention, incident contact, and operating procedures. The booking confirmation and readiness endpoints fail closed until explicitly enabled.
