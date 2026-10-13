@@ -61,3 +61,9 @@ Credential handling: Neon-generated passwords/connection strings were held only 
 Isolated local PostgreSQL verification: `.env.local` points to `localhost/lava_auto_agendamento_test` with distinct `lava_test` and `lava_migrator` roles. The real-browser PostgreSQL booking E2E passed 4/4; full Vitest passed 123/123 in 39 files; full Playwright passed 29/29. These tests used only synthetic fixtures and did not write to Neon production.
 
 This is schema/credential preparation, not production approval. Vercel deployment, authenticated OIDC/MFA and OWNER bootstrap, legal/privacy and real-PII authorization, hosted CI, provider backup/restore exercise, operational ownership, and release/rollback approval remain open. No push, merge, or deployment occurred.
+
+## Vercel runtime compatibility review — 13/10/2026
+
+The code targets Node.js 24.x, supported by Vercel, and Next.js App Router handlers use the Node.js runtime. The application `pg.Pool` is configured for a Neon pooled `DATABASE_URL`; the inspected SQL uses explicit schema-qualified relations and transaction-scoped locks/settings, not session-level advisory locks or persistent session state. Neon documents transaction-mode pooling and its session-state limitations. This is a compatibility review plus local build/E2E evidence, not a hosted deployment test.
+
+Security gate: Vercel Functions scale across isolated instances. The current `runWithRouteConcurrency` counters are process-local, and `createAbuseControl` has no configured shared provider. These controls cannot enforce a global request/abuse limit on Vercel. Keep any Preview private and synthetic; do not expose public production traffic until the owner approves and configures shared enforcement. Other open gates remain OIDC/MFA and OWNER bootstrap, legal/privacy authorization, hosted CI, backup/restore, and operating ownership. Production is not ready.
