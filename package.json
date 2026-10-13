@@ -14,11 +14,11 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --passWithNoTests",
-    "test:browser": "node --env-file-if-exists=.env.local ./node_modules/@playwright/test/cli.js test --pass-with-no-tests",
+    "test:browser": "node --env-file-if-exists=.env.local scripts/run-browser-tests.mjs",
     "migrate": "node --env-file=.env.local ./node_modules/node-pg-migrate/bin/node-pg-migrate.js up -d MIGRATION_DATABASE_URL -m database/migrations -t lava_migrations --single-transaction"
   },
   "dependencies": {
-    "next": "16.3.6",
+    "next": "16.3.8",
     "node-pg-migrate": "9.0.0",
     "pg": "8.23.0",
     "react": "19.2.8",
@@ -27,13 +27,14 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@neon/config": "^1.9.1",
     "@playwright/test": "1.62.1",
     "@types/node": "24.10.0",
     "@types/pg": "8.23.1",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "eslint": "9.39.5",
-    "eslint-config-next": "16.3.6",
+    "eslint-config-next": "16.3.8",
     "typescript": "5.9.3",
     "vitest": "4.1.11"
   }

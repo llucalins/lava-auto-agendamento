@@ -8,15 +8,24 @@ import { replaceCalendar } from "../../src/server/capabilities/admin-operations/
 import { createScheduledBooking } from "../../src/server/capabilities/booking-lifecycle/repository";
 
 test.describe("before client hydration", () => {
-  test.use({ javaScriptEnabled: false });
-
   test("keeps calendar controls disabled until client hydration", async ({ context, page }) => {
     const pool = createPool();
     try {
       const owner = await createActor(pool, "OWNER");
       await addSessionCookies(context, owner);
+      let blockedClientScripts = 0;
+      await page.route("**/*", async (route) => {
+        if (route.request().resourceType() === "script") {
+          blockedClientScripts += 1;
+          await route.abort();
+          return;
+        }
+        await route.continue();
+      });
 
       expect((await page.goto("/admin/calendar"))?.status()).toBe(200);
+      await page.waitForLoadState("networkidle");
+      expect(blockedClientScripts).toBeGreaterThan(0);
       await expect(page.getByLabel("Data local em America/Fortaleza")).toBeDisabled();
       await expect(page.getByRole("button", { name: "Revisar e aplicar fechamento" })).toBeDisabled();
     } finally {

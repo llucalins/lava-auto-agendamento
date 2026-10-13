@@ -1,7 +1,7 @@
-export async function register() {
-  if (process.env.NEXT_RUNTIME === "nodejs") {
-    const { getServerConfig } = await import("./src/server/shared/config");
+import { loadServerConfig } from "./src/server/shared/config-schema";
 
-    getServerConfig();
+export function register() {
+  if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build") {
+    loadServerConfig(process.env, true);
   }
 }
