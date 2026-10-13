@@ -1,5 +1,39 @@
 # Implementation Plan: Car Wash Scheduling MVP
 
+## Sprint 01 — plano corretivo MVP Lean (13–19/10/2026)
+
+Este plano executa `SPEC-mvp-lean-sprint-01.md` e prevalece para o trabalho corrente sem apagar o plano histórico abaixo.
+
+| Ordem | Prioridade | Slice vertical | Dependências | Aceite e verificação | Arquivos principais |
+|---:|:---:|---|---|---|---|
+| 1 | P0 | Segurança de dependências | — | Atualizações mínimas baseadas em advisory; audits prod/completo sem `high`/`critical` alcançável; teste, types, lint e build verdes | `package.json`, `package-lock.json`, `docs/dependency-review.md` |
+| 2 | P0 | Playwright e CI browser | 1 | 23+ cenários concluem e o processo encerra com código 0; `/admin/calendar` funciona pré-hidratação; workflow preserva isolamento | `playwright.config.ts`, `.github/workflows/ci.yml`, testes E2E |
+| 3 | P0 | Revisão pública autoritativa | 1 | API reconcilia pacote/preço/duração/revisões/horário; confirmação rejeita snapshot obsoleto; integração PostgreSQL e browser verdes | booking UI/API/capabilities/tests |
+| 4 | P0 | Idempotência de ponta a ponta | 3 | dupla submissão, concorrência e resposta perdida produzem uma reserva e uma alocação | booking API/capabilities/tests E2E e integração |
+| 5 | P0 | Admin operacional | 2 | login → lista → detalhe → status/cancelamento no navegador; autorização, CSRF, revisão e auditoria validados | páginas/admin APIs/capabilities/tests |
+| 6 | P1 | Configuração essencial navegável | 5 | pacotes e calendário podem ser operados sem API manual; conflitos não sobrescrevem dados | páginas/admin APIs/tests E2E |
+| 7 | P0 | Gate seguro de produção | 1 | configuração obrigatória validada, health/readiness mínimo e gate de PII real fail-closed | config, health, testes, `.env.example` |
+| 8 | P1 | Logs e abuso de instância única | 7 | eventos allowlisted sem PII e limites locais aplicados/documentados | observability, abuse, rotas, testes |
+| 9 | P0 | Deploy/backup/privacidade | 7 | runbooks de HTTPS/PostgreSQL/migração/rollback; restore sintético executado quando ambiente permitir; aviso visível; gates humanos explícitos | `docs`, UI pública, scripts/testes |
+| 10 | P0 | Verificação/revisão final | 1–9 | suítes completas, audits, revisão de segurança e diff; CI remoto somente se já disponível sem mutação externa | docs de readiness e relatório |
+
+### Sequência dos seis dias restantes
+
+- Dia 2 (14/10): slices 1–2 e reavaliação obrigatória do advisory extraordinário anunciado pelo Next.js.
+- Dia 3 (15/10): slices 3–4.
+- Dia 4 (16/10): slice 5.
+- Dia 5 (17/10): slices 6–8.
+- Dia 6 (18/10): slice 9, restore sintético e ensaio de demonstração.
+- Dia 7 (19/10): slice 10, correções estritamente bloqueadoras e pacote de homologação.
+
+### Gates humanos que não serão autoaprovados
+
+Base legal/necessidade/transparência de CPF; retenção e descarte; controlador/operador e canal do titular; provedor de hosting/PostgreSQL/OIDC-MFA; domínio/TLS; DPA/localização; bootstrap e recuperação do OWNER; destino, retenção e monitoramento de backups; orçamento e janela de publicação.
+
+### Pós-MVP (P2)
+
+Multi-tenancy/SaaS, assinatura, cobrança online, WhatsApp automático, relatórios avançados, equipes/permissões sofisticadas, rate limit distribuído, infraestrutura multi-instância e tracking público ampliado.
+
 ## Objective
 
 Deliver the approved secure MVP: package-first public booking, interval availability and atomic confirmation, status-only public tracking, and protected staff operations. Correctness, privacy, and multi-instance safety are first-class acceptance conditions.

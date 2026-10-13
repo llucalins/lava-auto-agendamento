@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { loadEnvFile } from "node:process";
 
 import { expect, test, type BrowserContext } from "@playwright/test";
 import { Pool } from "pg";
@@ -8,7 +7,33 @@ import { createLocalSession } from "../../src/server/capabilities/admin-access/s
 import { replaceCalendar } from "../../src/server/capabilities/admin-operations/calendar-management";
 import { createScheduledBooking } from "../../src/server/capabilities/booking-lifecycle/repository";
 
-loadEnvFile(".env.local");
+test.describe("before client hydration", () => {
+  test("keeps calendar controls disabled until client hydration", async ({ context, page }) => {
+    const pool = createPool();
+    try {
+      await currentRevision(pool);
+      const owner = await createActor(pool, "OWNER");
+      await addSessionCookies(context, owner);
+      let blockedClientScripts = 0;
+      await page.route("**/*", async (route) => {
+        if (route.request().resourceType() === "script") {
+          blockedClientScripts += 1;
+          await route.abort();
+          return;
+        }
+        await route.continue();
+      });
+
+      expect((await page.goto("/admin/calendar"))?.status()).toBe(200);
+      await page.waitForLoadState("networkidle");
+      expect(blockedClientScripts).toBeGreaterThan(0);
+      await expect(page.getByLabel("Data local em America/Fortaleza")).toBeDisabled();
+      await expect(page.getByRole("button", { name: "Revisar e aplicar fechamento" })).toBeDisabled();
+    } finally {
+      await pool.end();
+    }
+  });
+});
 
 test("an OWNER reviews and explicitly acknowledges a calendar conflict without changing the booking", async ({ context, page }) => {
   const pool = createPool();

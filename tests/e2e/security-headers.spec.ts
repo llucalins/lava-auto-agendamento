@@ -9,13 +9,20 @@ const globalPolicy = {
 };
 
 test("applies one browser security policy across public, admin, API, and tracking surfaces", async ({ request }) => {
-  for (const path of ["/", "/booking", "/admin/bookings", "/tracking", "/tracking/status", "/api/public/tracking/status"]) {
+  for (const path of ["/", "/booking", "/admin/bookings", "/tracking", "/tracking/status", "/api/public/tracking/status", "/api/health", "/api/ready"]) {
     const response = await request.get(path);
     const headers = response.headers();
     for (const [name, value] of Object.entries(globalPolicy)) expect(headers[name], path).toBe(value);
     expect(headers["content-security-policy"], path).toContain("default-src 'self'");
     expect(headers["content-security-policy"], path).toContain("frame-ancestors 'none'");
   }
+
+  const health = await request.get("/api/health");
+  expect(health.status()).toBe(200);
+  expect(await health.json()).toEqual({ status: "ok" });
+  const readiness = await request.get("/api/ready");
+  expect([200, 503]).toContain(readiness.status());
+  expect(Object.keys(await readiness.json()).sort()).toEqual(["status"]);
 });
 
 test("prevents sensitive caching, browser storage, framing, and cross-origin API reads", async ({ page, request }) => {

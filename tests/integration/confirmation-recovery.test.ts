@@ -4,6 +4,7 @@ import type { Pool } from "pg";
 import { describe, expect, it } from "vitest";
 
 import { confirmBooking } from "../../src/server/capabilities/booking-lifecycle/confirm";
+import { createBookingReview } from "../../src/server/capabilities/public-booking-flow/review";
 import { createConcurrentIntegrationPool, createIntegrationPool } from "../support/postgres";
 
 const fingerprintKey = "test-only-confirmation-fingerprint-key";
@@ -32,7 +33,9 @@ async function createPackage(pool: Pick<Pool, "query">): Promise<string> {
   return packageId;
 }
 
-function command(packageId: string, start: Date, key = intentKey()) {
+async function command(pool: Pick<Pool, "query">, packageId: string, start: Date, key = intentKey()) {
+  const review = await createBookingReview(pool, { packageId, serviceStart: start }, fingerprintKey);
+  if (review.kind !== "READY") throw new Error("Expected selectable test fixture.");
   return {
     intentKey: key,
     fingerprintKey,
@@ -50,6 +53,7 @@ function command(packageId: string, start: Date, key = intentKey()) {
       licencePlate: "ABC1D23",
       vehicleColor: "Blue",
       pickupAddress: "Rua das Flores, 10",
+      reviewToken: review.reviewToken,
     },
   };
 }
@@ -75,7 +79,7 @@ describe("atomic confirmation recovery", () => {
   it("commits authoritative effects once, replays them, and rejects material mismatch", async () => {
     const pool = createIntegrationPool();
     const packageId = await createPackage(pool);
-    const request = command(packageId, serviceStart());
+    const request = await command(pool, packageId, serviceStart());
 
     try {
       const first = await confirmBooking(pool, request);
@@ -112,8 +116,8 @@ describe("atomic confirmation recovery", () => {
     const pool = createIntegrationPool();
     const packageId = await createPackage(pool);
     const start = serviceStart();
-    const winner = command(packageId, start);
-    const loser = command(packageId, start);
+    const winner = await command(pool, packageId, start);
+    const loser = await command(pool, packageId, start);
 
     try {
       await expect(confirmBooking(pool, winner)).resolves.toMatchObject({ kind: "CONFIRMED" });
@@ -146,7 +150,7 @@ describe("atomic confirmation recovery", () => {
   it("serializes concurrent same-key confirmation contenders in PostgreSQL", async () => {
     const pool = createConcurrentIntegrationPool();
     const packageId = await createPackage(pool);
-    const request = command(packageId, serviceStart());
+    const request = await command(pool, packageId, serviceStart());
     const lockClient = await pool.connect();
 
     try {
@@ -175,6 +179,33 @@ describe("atomic confirmation recovery", () => {
     } finally {
       await lockClient.query("rollback").catch(() => undefined);
       lockClient.release();
+      await pool.end();
+    }
+  });
+
+  it("rejects confirmation when package terms change after review", async () => {
+    const pool = createIntegrationPool();
+    const packageId = await createPackage(pool);
+    const request = await command(pool, packageId, serviceStart());
+
+    try {
+      await pool.query(
+        "insert into app.service_package_revisions values ($1, 2, 'Confirmation revised', null, 15000, 45, 'ACTIVE')",
+        [packageId],
+      );
+      await pool.query("update app.service_packages set current_revision = 2 where package_id = $1", [packageId]);
+
+      await expect(confirmBooking(pool, request)).resolves.toEqual({
+        kind: "REJECTED",
+        code: "STALE_PACKAGE",
+        replayed: false,
+      });
+      const bookings = await pool.query<{ count: string }>(
+        "select count(*)::text as count from app.bookings where package_id = $1",
+        [packageId],
+      );
+      expect(bookings.rows[0]?.count).toBe("0");
+    } finally {
       await pool.end();
     }
   });

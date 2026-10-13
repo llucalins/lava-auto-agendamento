@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { unstable_noStore } from "next/cache";
+import Link from "next/link";
 
 import { listAdminBookings, type BookingListCategory } from "../../../../src/server/capabilities/admin-operations/booking-lists";
 import type { AdminBookingListItem } from "../../../../src/server/capabilities/admin-operations/booking-lists";
@@ -24,7 +25,7 @@ export default async function AdminBookingsPage({
   } catch {
     notFound();
   }
-  return <main><h1>Agendamentos</h1><nav aria-label="Categorias de agendamentos">{categories.map((item) => <a href={`/admin/bookings?category=${item}`} key={item}>{item}</a>)}</nav><p>{category}</p><ul>{bookings.map((booking) => <li key={booking.bookingId}>{booking.serviceStart} — {booking.status} — {booking.packageName} — {booking.fullName} — {booking.vehicleModel} — {booking.vehicleColor}</li>)}</ul></main>;
+  return <main><h1>Agendamentos</h1><nav aria-label="Categorias de agendamentos">{categories.map((item) => <Link href={`/admin/bookings?category=${item}`} key={item}>{item}</Link>)}</nav><p>{category}</p><ul>{bookings.map((booking) => <li key={booking.bookingId}><Link href={`/admin/bookings/${booking.bookingId}`}>{booking.serviceStart} — {booking.status} — {booking.packageName} — {booking.fullName} — {booking.vehicleModel} — {booking.vehicleColor}</Link></li>)}</ul></main>;
 }
 
 function parsePage(value: string | string[] | undefined): number {

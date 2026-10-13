@@ -54,8 +54,8 @@ will choose the project manifest and lockfile after this record is reviewed.
   `eslint-config-next/core-web-vitals` and `eslint-config-next/typescript`.
   [Next.js ESLint configuration](https://nextjs.org/docs/app/api-reference/config/eslint)
 - No `--force`, `--legacy-peer-deps`, or peer-dependency override is used.
-  The project keeps `.npmrc` `ignore-scripts=true` active, and the current npm
-  production and full audits report zero known vulnerabilities.
+  The project keeps `.npmrc` `ignore-scripts=true` active. The 13/10/2026
+  Sprint 01 audit below supersedes any earlier zero-finding summary.
 - Re-evaluate and migrate to a supported ESLint release as soon as the stable
   Next.js lint stack permits normal peer resolution without forced overrides.
 
@@ -65,3 +65,14 @@ will choose the project manifest and lockfile after this record is reviewed.
   line constraint stated above.
 - No provider, database service, package, application file, or lockfile is
   selected or installed by this task.
+
+## Sprint 01 security refresh — 13/10/2026
+
+- Reproduced production audit before remediation: 3 high findings (`next@16.3.6`, `brace-expansion@5.0.9`, `source-map-js@1.2.1`).
+- Updated `next` and version-matched `eslint-config-next` to `16.3.8`. This is the smallest same-line patch; the signed upstream release identifies fixes for the reported SSRF, cache-poisoning and disclosure advisories: https://github.com/vercel/next.js/releases/tag/v16.3.8.
+- Updated compatible transitives to `brace-expansion@5.0.12`, `source-map-js@1.2.2` and patched 1.x `brace-expansion` releases without adding direct dependencies or using `--force`.
+- Production audit rerun on 13/10/2026: `npm audit --omit=dev --audit-level=high` reports 0 vulnerabilities.
+- Full audit rerun on 13/10/2026: 5 high findings remain through `braces@3.0.3` in the dev-only `eslint-config-next` → `@next/eslint-plugin-next` → `fast-glob` → `micromatch` chain. npm offers only an incompatible downgrade of `eslint-config-next`; do not use `npm audit fix --force`.
+- Exception `DEV-GHSA-vfj7-8cjw-p6xm` (review by 13/11/2026): the GitHub-reviewed advisory lists `braces <=3.0.3`, no patched release, and high severity. The exact five-node path is `eslint-config-next@16.3.8` -> `@next/eslint-plugin-next@16.3.8` -> `fast-glob@3.3.1` -> `micromatch@4.0.8` -> `braces@3.0.3`; all are `dev: true` in `package-lock.json`. The only npm-suggested remediation downgrades `eslint-config-next` to 14.2.35, incompatible with pinned Next.js 16.3.8, so no downgrade or forced override is accepted.
+- CI continues to block high/critical production findings with `npm audit --omit=dev --audit-level=high`. `scripts/check-development-audit.mjs` allows only the exact advisory and chain above, verifies each lockfile node remains development-only, and fails on any new finding, path/version/severity change, or expiry. Unit tests guard those rejection cases. This is an active temporary exception, not a claim that the finding is fixed. Keep CI jobs time-bounded and without production secrets; reassess when a patched upstream release or revised advisory is available. Do not waive future production findings.
+- The initial registry request inside the restricted sandbox failed; both audits above were rerun with network access.

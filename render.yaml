@@ -1,0 +1,36 @@
+# Render Free is for a synthetic-data demo only; it is not production-ready.
+# Neon remains the only PostgreSQL provider. Migrations are intentionally manual.
+services:
+  - type: web
+    name: lava-auto-agendamento-pilot
+    runtime: node
+    plan: free
+    autoDeployTrigger: off
+    buildCommand: npm ci --ignore-scripts && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_ORIGIN
+        sync: false
+      - key: PII_PROCESSING_APPROVED
+        value: "false"
+      - key: CONFIRMATION_FINGERPRINT_KEY
+        sync: false
+      - key: TRACKING_VERIFIER_KEY_VERSION
+        value: "1"
+      - key: TRACKING_VERIFIER_KEY
+        sync: false
+      - key: OIDC_ISSUER
+        sync: false
+      - key: OIDC_AUTHORIZATION_ENDPOINT
+        sync: false
+      - key: OIDC_TOKEN_ENDPOINT
+        sync: false
+      - key: OIDC_JWKS_URI
+        sync: false
+      - key: OIDC_CLIENT_ID
+        sync: false
+      - key: OIDC_REDIRECT_URI
+        sync: false

@@ -37,7 +37,7 @@ export default function PersonalStep({ onValid }: PersonalStepProps) {
 
   return <div className="personal-step">
     <h2>Seus dados</h2>
-    <p className="muted">Usaremos estas informações apenas para este agendamento.</p>
+    <p className="muted">Os dados solicitados apoiam o agendamento e o atendimento. Até a aprovação das decisões de privacidade e operação, use somente dados sintéticos; o processamento de dados reais permanece bloqueado em produção.</p>
     {error && <p className="error" role="alert">{error}</p>}
     <form onSubmit={submit} noValidate>
       <label htmlFor="full-name">Nome completo <span aria-hidden="true">*</span></label>

@@ -16,6 +16,14 @@ type Package = Readonly<{
 }>;
 
 type Start = Readonly<{ start: string; end: string }>;
+type AuthoritativeReview = Readonly<{
+  kind: "READY";
+  package: Package & Readonly<{ revision: number }>;
+  calendarRevision: number;
+  start: string;
+  end: string;
+  reviewToken: string;
+}>;
 
 const timezone = "America/Fortaleza";
 
@@ -65,6 +73,8 @@ export default function SelectionSteps() {
   const [vehicleDetails, setVehicleDetails] = useState<VehicleDetails | null>(null);
   const [serviceModeDetails, setServiceModeDetails] = useState<ServiceModeDetails | null>(null);
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntent | null>(null);
+  const [authoritativeReview, setAuthoritativeReview] = useState<AuthoritativeReview | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const days = useMemo(() => futureDays(14), []);
@@ -112,12 +122,39 @@ export default function SelectionSteps() {
     setError(null);
   }
 
+  async function choosePayment(value: PaymentIntent) {
+    if (!selectedPackage || !selectedStart) return;
+    setPaymentIntent(value);
+    setAuthoritativeReview(null);
+    setReviewLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/public/bookings/review", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ packageId: selectedPackage.id, serviceStart: selectedStart.start }),
+      });
+      const body = await response.json() as AuthoritativeReview | Readonly<{ kind?: string }>;
+      if (!response.ok || body.kind !== "READY") {
+        setSelectedStart(null);
+        setPaymentIntent(null);
+        setError("O pacote ou horário mudou. Escolha novamente para revisar os termos atuais.");
+        return;
+      }
+      setAuthoritativeReview(body as AuthoritativeReview);
+    } catch {
+      setError("Não foi possível preparar a revisão autoritativa. Tente novamente.");
+    } finally {
+      setReviewLoading(false);
+    }
+  }
+
   return <section className="booking-shell" aria-labelledby="booking-title">
     <p className="eyebrow">Agendamento online</p>
     <h1 id="booking-title">Agende sua lavagem</h1>
     <p className="intro">Escolha um pacote, um dia e um horário compatível.</p>
     {error && <p className="error" role="alert">{error}</p>}
     {!selectedPackage && <div className="step"><h2>Escolha o pacote</h2>{loading ? <p>Carregando pacotes…</p> : <div className="cards">{packages.map((item) => <button className="package-card" key={item.id} onClick={() => choosePackage(item)}><span className="package-name">{item.name}</span><span>{item.description}</span><span>{money(item.priceCentavos)} · {item.durationMinutes} min</span></button>)}</div>}</div>}
-    {selectedPackage && <div className="step"><button className="back" onClick={() => choosePackage(null)}>Trocar pacote</button><p className="selected">Pacote: <strong>{selectedPackage.name}</strong></p><h2>Escolha o dia</h2><div className="day-list">{days.map((day, index) => <button key={day} className={selectedDay === day ? "day selected-day" : "day"} onClick={() => void chooseDay(day)}>{index === 0 ? "Hoje" : index === 1 ? "Amanhã" : new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, weekday: "short", day: "numeric", month: "short" }).format(new Date(`${day}T12:00:00Z`))}</button>)}</div>{selectedDay && <><h2>Escolha o horário</h2>{starts.length ? <div className="start-list">{starts.map((item) => <button className={selectedStart?.start === item.start ? "start selected-day" : "start"} key={item.start} onClick={() => { setSelectedStart(item); setPersonalDetails(null); setVehicleDetails(null); setServiceModeDetails(null); setPaymentIntent(null); }}>{new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, hour: "2-digit", minute: "2-digit" }).format(new Date(item.start))}</button>)}</div> : <p className="muted">Nenhum horário compatível encontrado neste dia.</p>}</>}{selectedStart && <PersonalStep onValid={(details) => { setPersonalDetails(details); setVehicleDetails(null); setServiceModeDetails(null); setPaymentIntent(null); }} />}{personalDetails && <VehicleStep onValid={(details) => { setVehicleDetails(details); setServiceModeDetails(null); setPaymentIntent(null); }} />}{vehicleDetails && <ServiceModeStep onValid={(details) => { setServiceModeDetails(details); setPaymentIntent(null); }} />}{serviceModeDetails && <PaymentStep onValid={setPaymentIntent} />}{paymentIntent && <ReviewStep packageId={selectedPackage.id} packageName={selectedPackage.name} start={selectedStart!.start} personal={personalDetails!} vehicle={vehicleDetails!} mode={serviceModeDetails!} payment={paymentIntent} />}</div>}
+    {selectedPackage && <div className="step"><button className="back" onClick={() => choosePackage(null)}>Trocar pacote</button><p className="selected">Pacote: <strong>{selectedPackage.name}</strong></p><h2>Escolha o dia</h2><div className="day-list">{days.map((day, index) => <button key={day} className={selectedDay === day ? "day selected-day" : "day"} onClick={() => void chooseDay(day)}>{index === 0 ? "Hoje" : index === 1 ? "Amanhã" : new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, weekday: "short", day: "numeric", month: "short" }).format(new Date(`${day}T12:00:00Z`))}</button>)}</div>{selectedDay && <><h2>Escolha o horário</h2>{starts.length ? <div className="start-list">{starts.map((item) => <button className={selectedStart?.start === item.start ? "start selected-day" : "start"} key={item.start} onClick={() => { setSelectedStart(item); setPersonalDetails(null); setVehicleDetails(null); setServiceModeDetails(null); setPaymentIntent(null); setAuthoritativeReview(null); }}>{new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, hour: "2-digit", minute: "2-digit" }).format(new Date(item.start))}</button>)}</div> : <p className="muted">Nenhum horário compatível encontrado neste dia.</p>}</>}{selectedStart && <PersonalStep onValid={(details) => { setPersonalDetails(details); setVehicleDetails(null); setServiceModeDetails(null); setPaymentIntent(null); setAuthoritativeReview(null); }} />}{personalDetails && <VehicleStep onValid={(details) => { setVehicleDetails(details); setServiceModeDetails(null); setPaymentIntent(null); setAuthoritativeReview(null); }} />}{vehicleDetails && <ServiceModeStep onValid={(details) => { setServiceModeDetails(details); setPaymentIntent(null); setAuthoritativeReview(null); }} />}{serviceModeDetails && <PaymentStep onValid={(value) => void choosePayment(value)} />}{reviewLoading && <p role="status">Conferindo pacote, preço e horário atuais…</p>}{paymentIntent && authoritativeReview && <ReviewStep review={authoritativeReview} personal={personalDetails!} vehicle={vehicleDetails!} mode={serviceModeDetails!} payment={paymentIntent} />}</div>}
   </section>;
 }

@@ -13,6 +13,7 @@ import { persistBookingPii } from "./pii-repository";
 import { createScheduledBooking } from "./repository";
 import { findSelectableStarts } from "../operating-calendar/availability";
 import { acquireCalendarConfirmationLock } from "../operating-calendar/coordination";
+import { type BookingReviewPayload, verifyBookingReview } from "../public-booking-flow/review";
 import { applyTransactionResourceLimits } from "../../security/resource-controls";
 
 const operationScope = "public.booking.confirm";
@@ -89,6 +90,7 @@ async function confirmInTransaction(
   pool: Pick<Pool, "connect">,
   command: ConfirmBookingCommand,
   fingerprint: string,
+  review: BookingReviewPayload,
 ): Promise<ConfirmationResult> {
   const client = await pool.connect();
 
@@ -112,15 +114,16 @@ async function confirmInTransaction(
       return result;
     }
 
-    const currentPackage = await client.query(
-      `select p.package_id
+    const currentPackage = await client.query<{ packageRevision: number }>(
+      `select p.current_revision as "packageRevision"
        from app.service_packages p
        join app.service_package_revisions r
          on r.package_id = p.package_id and r.revision = p.current_revision
-       where p.package_id = $1 and r.state = 'ACTIVE'`,
+       where p.package_id = $1 and r.state = 'ACTIVE'
+       for share of p`,
       [command.material.packageId],
     );
-    if (currentPackage.rows.length !== 1) {
+    if (currentPackage.rows[0]?.packageRevision !== review.packageRevision) {
       const result = await recordRejected(client, command, "STALE_PACKAGE");
       await client.query("commit");
       return result;
@@ -146,7 +149,12 @@ async function confirmInTransaction(
       packageId: command.material.packageId,
       starts: [command.material.serviceStart],
     });
-    if (!selectable.some((candidate) => candidate.start === command.material.serviceStart.toISOString())) {
+    if (!selectable.some((candidate) =>
+      candidate.start === review.serviceStart
+      && candidate.end === review.serviceEnd
+      && candidate.packageRevision === review.packageRevision
+      && candidate.calendarRevision === review.calendarRevision
+    )) {
       const result = await recordRejected(client, command, "STALE_CALENDAR");
       await client.query("commit");
       return result;
@@ -215,15 +223,21 @@ export async function confirmBooking(
   }
 
   let fingerprint: string;
+  let review: BookingReviewPayload;
   try {
     fingerprint = fingerprintConfirmationMaterial(command.material, command.fingerprintKey);
+    review = verifyBookingReview(command.material.reviewToken, command.fingerprintKey);
+    if (
+      review.packageId !== command.material.packageId
+      || review.serviceStart !== command.material.serviceStart.toISOString()
+    ) throw new Error("Booking review does not match confirmation.");
   } catch {
     throw new Error("Confirmation request is invalid.");
   }
 
   for (let attempt = 0; attempt < maxTransactionAttempts; attempt += 1) {
     try {
-      return await confirmInTransaction(pool, command, fingerprint);
+      return await confirmInTransaction(pool, command, fingerprint, review);
     } catch (error) {
       if (!isPostgresError(error) || !["40001", "40P01", "23505"].includes(error.code ?? "")) {
         throw new Error("Confirmation is unavailable.");

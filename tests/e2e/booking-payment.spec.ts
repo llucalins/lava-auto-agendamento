@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 test("accepts only payment intent methods without payment credentials", async ({ page }) => {
   await page.route("**/api/public/packages**", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify([{ id: "11111111-1111-4111-8111-111111111111", name: "Lavagem completa", description: "Exterior e interior.", priceCentavos: "7500", durationMinutes: 90 }]) }));
   await page.route("**/api/public/availability**", async (route) => { const start = new URL(route.request().url()).searchParams.get("start") ?? new Date().toISOString(); await route.fulfill({ contentType: "application/json", body: JSON.stringify({ availableStarts: [{ start, end: start, packageRevision: 1, calendarRevision: 1 }] }) }); });
+  await page.route("**/api/public/bookings/review", async (route) => { const body = route.request().postDataJSON() as { packageId: string; serviceStart: string }; await route.fulfill({ contentType: "application/json", body: JSON.stringify({ kind: "READY", package: { id: body.packageId, revision: 1, name: "Lavagem completa", description: "Exterior e interior.", priceCentavos: "7500", durationMinutes: 90 }, calendarRevision: 1, start: body.serviceStart, end: body.serviceStart, reviewToken: "synthetic-signed-review-token-for-browser-test" }) }); });
   await page.goto("/booking");
   await page.getByRole("button", { name: /Lavagem completa/ }).click();
   await page.getByRole("button", { name: /Hoje|Amanhã/ }).first().click();

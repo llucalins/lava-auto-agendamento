@@ -1,12 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { loadEnvFile } from "node:process";
 
 import { expect, test } from "@playwright/test";
 import { Pool } from "pg";
 
 import { createLocalSession } from "../../src/server/capabilities/admin-access/sessions";
-
-loadEnvFile(".env.local");
 
 test("an OWNER creates and deactivates a package through the protected browser flow", async ({ context, page }) => {
   const pool = createPool();

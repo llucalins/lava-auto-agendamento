@@ -41,6 +41,7 @@ describe("confirmation intent model", () => {
       licencePlate: "abc1d23",
       vehicleColor: " Blue ",
       pickupAddress: " Rua das Flores, 10 ",
+      reviewToken: "synthetic-review-token-for-fingerprint-tests",
     };
 
     expect(fingerprintConfirmationMaterial(material, fingerprintKey)).toBe(
@@ -136,6 +137,7 @@ describe("confirmation intent model", () => {
       licencePlate: "DEF2G34",
       vehicleColor: "Black",
       pickupAddress: undefined,
+      reviewToken: "synthetic-review-token-for-rejection-tests",
     };
 
     await expect(
