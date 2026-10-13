@@ -50,7 +50,7 @@ jobs:
       - name: Dependency security
         run: |
           npm audit --omit=dev --audit-level=high
-          npm audit --audit-level=high
+          node scripts/check-development-audit.mjs
 
   postgres:
     runs-on: ubuntu-latest
