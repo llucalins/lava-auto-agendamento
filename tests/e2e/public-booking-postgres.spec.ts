@@ -52,7 +52,7 @@ test("real browser confirmation serializes duplicate submissions to one booking 
     await expectBookingCounts(fixture.pool, fixture.packageId, body.intentKey, { bookings: "1", allocations: "1", intents: "1" });
     expect(firstResult.kind).toBe("CONFIRMED");
     expect(duplicateResult.body.kind).toBe("CONFIRMED");
-    await expect(page.getByRole("status")).toContainText("Agendamento confirmado");
+    await expect(page.locator(".review-step p[role='status']")).toHaveText("Agendamento confirmado.");
   } finally {
     await fixture.pool.end();
   }
@@ -83,7 +83,7 @@ test("retries the same intent after the real confirmation response is lost after
       response.url().endsWith("/api/public/bookings") && response.request().method() === "POST",
     );
     await page.getByRole("button", { name: "Confirmar agendamento" }).click();
-    await expect(page.getByRole("status")).toContainText("Agendamento confirmado");
+    await expect(page.locator(".review-step p[role='status']")).toHaveText("Agendamento confirmado.");
     expect(bodies).toHaveLength(2);
     expect(bodies[1]?.intentKey).toBe(bodies[0]?.intentKey);
     expect(bodies[1]?.material).toEqual(bodies[0]?.material);
