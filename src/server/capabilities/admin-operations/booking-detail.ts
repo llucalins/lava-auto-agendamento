@@ -10,6 +10,7 @@ export type AdminBookingDetail = Readonly<{
   serviceStart: string;
   serviceEnd: string;
   status: string;
+  revision: number;
   package: Readonly<{
     name: string;
     description: string | null;
@@ -33,6 +34,7 @@ type BookingDetailRow = Readonly<{
   serviceStart: Date;
   serviceEnd: Date;
   status: string;
+  revision: number;
   packageName: string;
   packageDescription: string | null;
   packagePriceCentavos: string;
@@ -59,7 +61,7 @@ export async function getAdminBookingDetail(
 
   const result = await pool.query<BookingDetailRow>(
     `select booking.booking_id as "bookingId", booking.service_start as "serviceStart",
-            booking.service_end as "serviceEnd", booking.status,
+            booking.service_end as "serviceEnd", booking.status, booking.revision,
             snapshot.name as "packageName", snapshot.description as "packageDescription",
             snapshot.price_centavos::text as "packagePriceCentavos",
             snapshot.currency as "packageCurrency", snapshot.duration_minutes as "packageDurationMinutes",
@@ -81,6 +83,7 @@ export async function getAdminBookingDetail(
     serviceStart: booking.serviceStart.toISOString(),
     serviceEnd: booking.serviceEnd.toISOString(),
     status: booking.status,
+    revision: booking.revision,
     package: {
       name: booking.packageName,
       description: booking.packageDescription,

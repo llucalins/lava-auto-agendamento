@@ -13,7 +13,7 @@ describe("admin booking detail", () => {
         queries.push(text);
         return queries.length === 1
           ? { rows: [{ adminId: "22222222-2222-4222-8222-222222222222", role: "EMPLOYEE", accountState: "ACTIVE", authorizationVersion: 1 }] }
-          : { rows: [{ bookingId, serviceStart: new Date("2026-08-27T12:00:00Z"), serviceEnd: new Date("2026-08-27T13:00:00Z"), status: "SCHEDULED", packageName: "Completo", packageDescription: "Lavagem", packagePriceCentavos: "12500", packageCurrency: "BRL", packageDurationMinutes: 60, intendedPaymentMethod: "PIX", serviceMode: "DROP_OFF", fullName: "Ana", phoneWhatsapp: "5585999999999", email: "ana@example.test", vehicleModel: "Hatch", licencePlate: "ABC1D23", vehicleColor: "Prata" }] };
+          : { rows: [{ bookingId, serviceStart: new Date("2026-08-27T12:00:00Z"), serviceEnd: new Date("2026-08-27T13:00:00Z"), status: "SCHEDULED", revision: 1, packageName: "Completo", packageDescription: "Lavagem", packagePriceCentavos: "12500", packageCurrency: "BRL", packageDurationMinutes: 60, intendedPaymentMethod: "PIX", serviceMode: "DROP_OFF", fullName: "Ana", phoneWhatsapp: "5585999999999", email: "ana@example.test", vehicleModel: "Hatch", licencePlate: "ABC1D23", vehicleColor: "Prata" }] };
       },
     };
 
@@ -22,6 +22,7 @@ describe("admin booking detail", () => {
       serviceStart: "2026-08-27T12:00:00.000Z",
       serviceEnd: "2026-08-27T13:00:00.000Z",
       status: "SCHEDULED",
+      revision: 1,
       package: { name: "Completo", description: "Lavagem", priceCentavos: 12500, currency: "BRL", durationMinutes: 60 },
       intendedPaymentMethod: "PIX",
       serviceMode: "DROP_OFF",
@@ -34,7 +35,7 @@ describe("admin booking detail", () => {
     });
 
     const projection = queries.at(-1) ?? "";
-    expect(projection).not.toMatch(/\b(cpf|pickup_address|revision|session|authorization)\b/i);
+    expect(projection).not.toMatch(/\b(cpf|pickup_address|session|authorization)\b/i);
     expect(projection).toContain("where booking.booking_id = $1");
   });
 

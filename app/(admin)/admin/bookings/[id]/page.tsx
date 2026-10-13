@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { getAdminBookingDetail } from "../../../../../src/server/capabilities/admin-operations/booking-detail";
 import { getDatabasePool } from "../../../../../src/server/persistence/pool";
+import BookingActions from "./BookingActions";
 
 export default async function AdminBookingDetailPage({
   params,
@@ -26,5 +27,6 @@ export default async function AdminBookingDetailPage({
     <p>{booking.intendedPaymentMethod} — {booking.serviceMode}</p>
     <p>{booking.fullName} — {booking.phoneWhatsapp} — {booking.email ?? "Sem e-mail"}</p>
     <p>{booking.vehicleModel} — {booking.licencePlate} — {booking.vehicleColor}</p>
+    <BookingActions bookingId={booking.bookingId} revision={booking.revision} status={booking.status} />
   </main>;
 }
