@@ -69,6 +69,15 @@ test("booking offers a package-specific slot and authoritative, no-PII demo revi
   await expect(page.getByLabel("CPF")).toHaveCount(0);
   await expect(page.getByLabel("Nome completo")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Confirmar agendamento" })).toHaveCount(0);
+  const blockedConfirmation = await page.evaluate(async () => {
+    const response = await fetch("/api/public/bookings", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    return { status: response.status, body: await response.json() };
+  });
+  expect(blockedConfirmation).toEqual({ status: 503, body: { kind: "UNAVAILABLE" } });
 });
 
 test("admin login page offers only the configured Google OIDC entry", async ({ page }) => {

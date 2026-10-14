@@ -6,17 +6,30 @@ import { setTimeout as delay } from "node:timers/promises";
 const baseUrl = "http://localhost:3000";
 const nextCli = "./node_modules/next/dist/bin/next";
 const playwrightCli = "./node_modules/@playwright/test/cli.js";
+const piiDisabledProductionMode = process.env.RUN_PII_DISABLED_E2E === "true";
 const testResults = resolve("test-results");
 await mkdir(testResults, { recursive: true });
 const browserTemp = await mkdtemp(resolve(testResults, "playwright-temp-"));
 const childEnv = { ...process.env, TEMP: browserTemp, TMP: browserTemp };
-const server = spawn(process.execPath, [nextCli, "dev"], {
+const server = spawn(process.execPath, [nextCli, piiDisabledProductionMode ? "start" : "dev"], {
   detached: process.platform !== "win32",
   // Browser E2E uses synthetic fixtures and must never inherit a production fingerprint secret.
   env: {
     ...childEnv,
-    APP_ORIGIN: baseUrl,
+    ...(piiDisabledProductionMode ? {
+      NODE_ENV: "production",
+      PII_PROCESSING_APPROVED: "false",
+      APP_ORIGIN: "https://localhost:3000",
+      OIDC_ISSUER: "https://playwright-oidc.example.test/",
+      OIDC_AUTHORIZATION_ENDPOINT: "https://playwright-oidc.example.test/authorize",
+      OIDC_TOKEN_ENDPOINT: "https://playwright-oidc.example.test/token",
+      OIDC_JWKS_URI: "https://playwright-oidc.example.test/jwks",
+      OIDC_CLIENT_ID: "playwright-only-client",
+      OIDC_REDIRECT_URI: "https://localhost:3000/api/admin/auth/callback",
+    } : { APP_ORIGIN: baseUrl }),
     CONFIRMATION_FINGERPRINT_KEY: "playwright-only-confirmation-signing-key-not-for-production",
+    TRACKING_VERIFIER_KEY_VERSION: "1",
+    TRACKING_VERIFIER_KEY: Buffer.from("playwright-only-tracking-verifier-key-not-for-production").toString("base64url"),
   },
   stdio: "inherit",
 });

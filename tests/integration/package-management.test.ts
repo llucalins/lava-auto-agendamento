@@ -30,7 +30,16 @@ describe("PostgreSQL admin package management", () => {
     });
 
     expect(created).toMatchObject({ revision: 1, state: "ACTIVE" });
-    await expect(listAdminPackages(owner.pool, owner.sessionCookie)).resolves.toContainEqual({
+    const rank = await owner.pool.query<{ rank: number }>(
+      `select count(*)::int as rank
+       from app.service_packages package
+       join app.service_package_revisions revision
+         on revision.package_id = package.package_id and revision.revision = package.current_revision
+       where revision.name <= $1`,
+      [packageName],
+    );
+    const page = Math.max(1, Math.ceil(rank.rows[0]!.rank / 50));
+    await expect(listAdminPackages(owner.pool, owner.sessionCookie, page)).resolves.toContainEqual({
       packageId: created.packageId,
       revision: 1,
       name: packageName,
