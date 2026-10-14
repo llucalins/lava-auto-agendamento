@@ -14,10 +14,21 @@ export async function allocateBookingCapacity(
        from app.bookings
        where booking_id = $2 and status in ('SCHEDULED', 'IN_PROGRESS')
      ), active_unit as (
-       select capacity_unit_id
+       select capacity_unit_id, ordinal
        from app.capacity_units
        where state = 'ACTIVE'
-       order by ordinal
+     ), available_unit as (
+       select unit.capacity_unit_id
+       from active_unit unit
+       cross join capacity_booking booking
+       where not exists (
+         select 1 from app.capacity_allocations allocation
+         where allocation.capacity_unit_id = unit.capacity_unit_id
+           and allocation.consumes_capacity
+           and allocation.service_interval && tstzrange(booking.service_start, booking.service_end, '[)')
+         for share
+       )
+       order by unit.ordinal
        limit 1
      )
      insert into app.capacity_allocations (
@@ -26,7 +37,7 @@ export async function allocateBookingCapacity(
      select $1, booking.booking_id, unit.capacity_unit_id,
             booking.service_start, booking.service_end
      from capacity_booking booking
-     cross join active_unit unit
+     cross join available_unit unit
      returning allocation_id as "allocationId"`,
     [randomUUID(), bookingId],
   );

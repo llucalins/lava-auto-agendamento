@@ -63,7 +63,7 @@ describe("public availability", () => {
     expect(sql).toContain("candidate.service_end <= window_end");
     expect(sql).toContain("unavailability.starts_at < candidate.service_end");
     expect(sql).not.toContain("insert into");
-    expect(values).toEqual([packageId, ["2026-08-31T11:30:00.000Z"]]);
+    expect(values).toEqual([packageId, ["2026-08-31T11:30:00.000Z"], false]);
   });
 });
 

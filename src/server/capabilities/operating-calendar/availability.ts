@@ -64,6 +64,7 @@ export function parseAvailabilityRequest(input: unknown): AvailabilityRequest {
 export async function findSelectableStarts(
   pool: AvailabilityDatabase,
   request: AvailabilityRequest,
+  options: Readonly<{ ignoreCapacity?: boolean }> = {},
 ): Promise<SelectableStart[]> {
   const result = await pool.query(
     `with selected_package as (
@@ -125,10 +126,18 @@ export async function findSelectableStarts(
            and unavailability.starts_at < candidate.service_end
            and unavailability.ends_at > candidate.start
        )
+       and ($3::boolean or (
+         select count(*) from app.capacity_units unit where unit.state = 'ACTIVE'
+       ) > (
+         select count(*) from app.capacity_allocations allocation
+         where allocation.consumes_capacity
+           and allocation.service_interval && tstzrange(candidate.start, candidate.service_end, '[)')
+       ))
      order by candidate.start`,
     [
       request.packageId,
       request.starts.map((start) => start.toISOString()),
+      options.ignoreCapacity ?? false,
     ],
   );
 

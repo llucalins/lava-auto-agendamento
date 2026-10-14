@@ -99,6 +99,7 @@ async function publishOpenCalendar(sessionCookie: string) {
 function configuration(expectedRevision: number, closedDates: readonly string[]) {
   return {
     expectedRevision,
+    capacity: 1,
     weeklySchedule: Array.from({ length: 7 }, (_, weekday) => ({ weekday, windows: [{ start: "00:00", end: "23:59" }] })),
     overrides: closedDates.map((date) => ({ date, kind: "CLOSED" as const })),
     unavailability: [],

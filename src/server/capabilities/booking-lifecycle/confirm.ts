@@ -155,7 +155,17 @@ async function confirmInTransaction(
       && candidate.packageRevision === review.packageRevision
       && candidate.calendarRevision === review.calendarRevision
     )) {
-      const result = await recordRejected(client, command, "STALE_CALENDAR");
+      const calendarEligible = await findSelectableStarts(client, {
+        packageId: command.material.packageId,
+        starts: [command.material.serviceStart],
+      }, { ignoreCapacity: true });
+      const sameCalendar = calendarEligible.some((candidate) =>
+        candidate.start === review.serviceStart
+        && candidate.end === review.serviceEnd
+        && candidate.packageRevision === review.packageRevision
+        && candidate.calendarRevision === review.calendarRevision
+      );
+      const result = await recordRejected(client, command, sameCalendar ? "CAPACITY_UNAVAILABLE" : "STALE_CALENDAR");
       await client.query("commit");
       return result;
     }
