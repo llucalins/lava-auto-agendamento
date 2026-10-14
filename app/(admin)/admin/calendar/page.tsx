@@ -16,7 +16,7 @@ export default async function AdminCalendarPage() {
     notFound();
   }
 
-  return <main><div className="admin-shell">
+  return <main className="admin-page"><div className="admin-shell">
     <p className="eyebrow">Administração</p>
     <h1>Calendário operacional</h1>
     <p className="intro">Horários interpretados em {current.timezone}. Agendamentos existentes nunca são movidos ou cancelados automaticamente.</p>

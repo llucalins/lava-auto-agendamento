@@ -8,7 +8,7 @@ import { createLocalSession } from "../../src/server/capabilities/admin-access/s
 test("an OWNER creates and deactivates a package through the protected browser flow", async ({ context, page }) => {
   const pool = createPool();
   try {
-    const packageName = `000 E2E ${randomUUID().slice(0, 8)}`;
+    const packageName = `! E2E ${randomUUID().slice(0, 8)}`;
     const session = await createActor(pool, "OWNER");
     await context.addCookies([
       { name: "__Host-admin_session", value: session.cookieValue, url: "https://localhost:3000", secure: true, httpOnly: true, sameSite: "Lax" },

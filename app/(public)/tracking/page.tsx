@@ -1,5 +1,6 @@
 import TrackingProofForm from "./TrackingProofForm";
+import { PublicLayout } from "../../components/PublicLayout";
 
 export default function TrackingPage() {
-  return <main><section className="booking-shell" aria-labelledby="tracking-heading"><p className="eyebrow">Acompanhamento</p><h1 id="tracking-heading">Consulte o status do serviço</h1><p>Digite o código recebido após a confirmação. Ele não será colocado no endereço da página.</p><TrackingProofForm /></section></main>;
+  return <PublicLayout><main className="page-main"><section className="booking-shell page-card" aria-labelledby="tracking-heading"><p className="eyebrow">Acompanhamento seguro</p><h1 id="tracking-heading">Seu serviço, acompanhado.</h1><p className="intro">Digite o código recebido após a confirmação. Ele será enviado com segurança e nunca aparecerá no endereço da página.</p><TrackingProofForm /></section></main></PublicLayout>;
 }
