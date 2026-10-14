@@ -15,6 +15,9 @@ export type AdminBookingDetail = Readonly<{
     name: string;
     description: string | null;
     priceCentavos: number;
+    discountCentavos: number;
+    finalPriceCentavos: number;
+    promotionName: string | null;
     currency: string;
     durationMinutes: number;
   }>;
@@ -38,6 +41,9 @@ type BookingDetailRow = Readonly<{
   packageName: string;
   packageDescription: string | null;
   packagePriceCentavos: string;
+  packageDiscountCentavos: string;
+  packageFinalPriceCentavos: string;
+  promotionName: string | null;
   packageCurrency: string;
   packageDurationMinutes: number;
   intendedPaymentMethod: string;
@@ -64,6 +70,9 @@ export async function getAdminBookingDetail(
             booking.service_end as "serviceEnd", booking.status, booking.revision,
             snapshot.name as "packageName", snapshot.description as "packageDescription",
             snapshot.price_centavos::text as "packagePriceCentavos",
+            snapshot.discount_centavos::text as "packageDiscountCentavos",
+            snapshot.final_price_centavos::text as "packageFinalPriceCentavos",
+            snapshot.promotion_name as "promotionName",
             snapshot.currency as "packageCurrency", snapshot.duration_minutes as "packageDurationMinutes",
             booking.intended_payment_method as "intendedPaymentMethod", booking.service_mode as "serviceMode",
             pii.full_name as "fullName", pii.phone_whatsapp as "phoneWhatsapp", pii.email,
@@ -88,6 +97,9 @@ export async function getAdminBookingDetail(
       name: booking.packageName,
       description: booking.packageDescription,
       priceCentavos: Number(booking.packagePriceCentavos),
+      discountCentavos: Number(booking.packageDiscountCentavos),
+      finalPriceCentavos: Number(booking.packageFinalPriceCentavos),
+      promotionName: booking.promotionName,
       currency: booking.packageCurrency,
       durationMinutes: booking.packageDurationMinutes,
     },

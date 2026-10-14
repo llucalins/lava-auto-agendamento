@@ -19,7 +19,18 @@ describe("PostgreSQL admin booking detail", () => {
     const issuer = `https://${randomUUID()}.example.test`;
     await pool.query("insert into app.service_packages values ($1, 1)", [packageId]);
     await pool.query("insert into app.service_package_revisions values ($1, 1, 'Completo', 'Lavagem', 12500, 60, 'ACTIVE')", [packageId]);
-    const booking = await createScheduledBooking(pool, { packageId, serviceStart: new Date("2026-08-27T12:00:00Z"), serviceMode: "DROP_OFF", intendedPaymentMethod: "PIX" });
+    const booking = await createScheduledBooking(pool, {
+      packageId,
+      serviceStart: new Date("2026-08-27T12:00:00Z"),
+      serviceMode: "DROP_OFF",
+      intendedPaymentMethod: "PIX",
+      price: {
+        basePriceCentavos: "12500",
+        discountCentavos: "2500",
+        finalPriceCentavos: "10000",
+        promotion: { id: randomUUID(), revision: 2, name: "Oferta histórica" },
+      },
+    });
     await persistBookingPii(pool, { bookingId: booking.bookingId, fullName: "Ana", phoneWhatsapp: "5585999999999", email: "ana@example.test", cpf: "12345678901", vehicleModel: "Hatch", licencePlate: "ABC1D23", vehicleColor: "Prata" });
     await pool.query("insert into app.admin_identities (issuer, subject, role) values ($1, 'employee', 'EMPLOYEE')", [issuer]);
     const session = await createLocalSession(pool, { issuer, subject: "employee", mfaAssured: true });
@@ -30,7 +41,7 @@ describe("PostgreSQL admin booking detail", () => {
       phoneWhatsapp: "5585999999999",
       email: "ana@example.test",
       licencePlate: "ABC1D23",
-      package: { name: "Completo", description: "Lavagem", priceCentavos: 12500, currency: "BRL", durationMinutes: 60 },
+      package: { name: "Completo", description: "Lavagem", priceCentavos: 12500, discountCentavos: 2500, finalPriceCentavos: 10000, promotionName: "Oferta histórica", currency: "BRL", durationMinutes: 60 },
     }));
   });
 });
