@@ -13,7 +13,7 @@ describe("admin booking detail", () => {
         queries.push(text);
         return queries.length === 1
           ? { rows: [{ adminId: "22222222-2222-4222-8222-222222222222", role: "EMPLOYEE", accountState: "ACTIVE", authorizationVersion: 1 }] }
-          : { rows: [{ bookingId, serviceStart: new Date("2026-08-27T12:00:00Z"), serviceEnd: new Date("2026-08-27T13:00:00Z"), status: "SCHEDULED", revision: 1, packageName: "Completo", packageDescription: "Lavagem", packagePriceCentavos: "12500", packageCurrency: "BRL", packageDurationMinutes: 60, intendedPaymentMethod: "PIX", serviceMode: "DROP_OFF", fullName: "Ana", phoneWhatsapp: "5585999999999", email: "ana@example.test", vehicleModel: "Hatch", licencePlate: "ABC1D23", vehicleColor: "Prata" }] };
+          : { rows: [{ bookingId, serviceStart: new Date("2026-08-27T12:00:00Z"), serviceEnd: new Date("2026-08-27T13:00:00Z"), status: "SCHEDULED", revision: 1, packageName: "Completo", packageDescription: "Lavagem", packagePriceCentavos: "12500", packageDiscountCentavos: "2500", packageFinalPriceCentavos: "10000", promotionName: "Oferta", packageCurrency: "BRL", packageDurationMinutes: 60, intendedPaymentMethod: "PIX", serviceMode: "DROP_OFF", fullName: "Ana", phoneWhatsapp: "5585999999999", email: "ana@example.test", vehicleModel: "Hatch", licencePlate: "ABC1D23", vehicleColor: "Prata" }] };
       },
     };
 
@@ -23,7 +23,7 @@ describe("admin booking detail", () => {
       serviceEnd: "2026-08-27T13:00:00.000Z",
       status: "SCHEDULED",
       revision: 1,
-      package: { name: "Completo", description: "Lavagem", priceCentavos: 12500, currency: "BRL", durationMinutes: 60 },
+      package: { name: "Completo", description: "Lavagem", priceCentavos: 12500, discountCentavos: 2500, finalPriceCentavos: 10000, promotionName: "Oferta", currency: "BRL", durationMinutes: 60 },
       intendedPaymentMethod: "PIX",
       serviceMode: "DROP_OFF",
       fullName: "Ana",

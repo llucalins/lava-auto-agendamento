@@ -1,18 +1,27 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { z } from "zod";
 
 import { findSelectableStarts } from "../operating-calendar/availability";
+import { withTransaction } from "../../persistence/transaction";
+import { acquirePromotionPricingLock } from "../promotions/pricing";
+import type { PromotionPrice } from "../promotions/pricing";
 
 const inputSchema = z.object({ packageId: z.uuid(), serviceStart: z.date() }).strict();
 const payloadSchema = z.object({
-  version: z.literal(1),
+  version: z.literal(2),
   packageId: z.uuid(),
   packageRevision: z.number().int().positive(),
   calendarRevision: z.number().int().positive(),
   serviceStart: z.iso.datetime({ offset: true }),
   serviceEnd: z.iso.datetime({ offset: true }),
+  price: z.object({
+    basePriceCentavos: z.string().regex(/^\d+$/),
+    discountCentavos: z.string().regex(/^\d+$/),
+    finalPriceCentavos: z.string().regex(/^\d+$/),
+    promotion: z.object({ id: z.uuid(), revision: z.number().int().positive(), name: z.string().min(1).max(100) }).nullable(),
+  }),
 });
 
 type PackageRow = Readonly<{
@@ -32,6 +41,7 @@ export type BookingReviewResult =
       calendarRevision: number;
       start: string;
       end: string;
+      price: PromotionPrice;
       reviewToken: string;
     }>
   | Readonly<{ kind: "UNAVAILABLE" }>;
@@ -65,7 +75,7 @@ export function verifyBookingReview(token: string, signingKey: string): BookingR
 }
 
 export async function createBookingReview(
-  pool: Pick<Pool, "query">,
+  pool: Pick<Pool, "query"> | PoolClient,
   input: Readonly<{ packageId: string; serviceStart: Date }>,
   signingKey: string,
 ): Promise<BookingReviewResult> {
@@ -74,7 +84,9 @@ export async function createBookingReview(
     throw new Error("Booking review request is invalid.");
   }
 
-  const packages = await pool.query<PackageRow>(
+  const operation = async (client: Pick<Pool, "query">): Promise<BookingReviewResult> => {
+  await acquirePromotionPricingLock(client, "READ");
+  const packages = await client.query<PackageRow>(
     `select r.package_id as id, r.revision, r.name, r.description,
             r.price_centavos::text as "priceCentavos", r.duration_minutes as "durationMinutes"
      from app.service_packages p
@@ -86,7 +98,7 @@ export async function createBookingReview(
   const currentPackage = packages.rows[0];
   if (!currentPackage) return { kind: "UNAVAILABLE" };
 
-  const selectable = await findSelectableStarts(pool, {
+  const selectable = await findSelectableStarts(client, {
     packageId: parsed.data.packageId,
     starts: [parsed.data.serviceStart],
   });
@@ -95,12 +107,13 @@ export async function createBookingReview(
 
   const reviewToken = signBookingReview(
     {
-      version: 1,
+      version: 2,
       packageId: currentPackage.id,
       packageRevision: currentPackage.revision,
       calendarRevision: slot.calendarRevision,
       serviceStart: slot.start,
       serviceEnd: slot.end,
+      price: slot.price,
     },
     signingKey,
   );
@@ -110,6 +123,11 @@ export async function createBookingReview(
     calendarRevision: slot.calendarRevision,
     start: slot.start,
     end: slot.end,
+    price: slot.price,
     reviewToken,
   };
+  };
+  if ("release" in pool) return operation(pool);
+  if ("connect" in pool) return withTransaction(pool as Pick<Pool, "connect">, operation);
+  return operation(pool);
 }

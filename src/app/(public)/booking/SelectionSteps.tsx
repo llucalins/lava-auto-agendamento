@@ -13,15 +13,18 @@ type Package = Readonly<{
   description: string;
   priceCentavos: string;
   durationMinutes: number;
+  hasPromotion: boolean;
 }>;
 
-type Start = Readonly<{ start: string; end: string }>;
+type PromotionPrice = Readonly<{ basePriceCentavos: string; discountCentavos: string; finalPriceCentavos: string; promotion: Readonly<{ id: string; revision: number; name: string }> | null }>;
+type Start = Readonly<{ start: string; end: string; price?: PromotionPrice }>;
 type AuthoritativeReview = Readonly<{
   kind: "READY";
   package: Package & Readonly<{ revision: number }>;
   calendarRevision: number;
   start: string;
   end: string;
+  price: PromotionPrice;
   reviewToken: string;
 }>;
 
@@ -89,9 +92,12 @@ export default function SelectionSteps({ piiAllowed = true, initialPackageId }: 
       const result: unknown = await response.json();
       if (!Array.isArray(result)) throw new Error();
       const availablePackages = result as Package[];
-      setPackages(availablePackages);
+      const displayPackages = availablePackages.map((item) => item.hasPromotion
+        ? { ...item, description: `${item.description ? `${item.description} · ` : ""}Promoção disponível em dias e horários definidos.` }
+        : item);
+      setPackages(displayPackages);
       if (initialPackageId) {
-        const initialPackage = availablePackages.find((item) => item.id === initialPackageId);
+        const initialPackage = displayPackages.find((item) => item.id === initialPackageId);
         if (initialPackage) setSelectedPackage(initialPackage);
       }
     } catch {
@@ -155,7 +161,8 @@ export default function SelectionSteps({ piiAllowed = true, initialPackageId }: 
       });
       const body = await response.json() as AuthoritativeReview | Readonly<{ kind?: string }>;
       if (!response.ok || body.kind !== "READY") throw new Error();
-      setAuthoritativeReview(body as AuthoritativeReview);
+      const authoritative = body as AuthoritativeReview;
+      setAuthoritativeReview({ ...authoritative, price: authoritative.price ?? basePriceOnly(authoritative.package.priceCentavos) });
     } catch {
       setSelectedStart(null);
       setError("Não foi possível revisar os termos atuais. Escolha outro horário ou tente novamente.");
@@ -183,7 +190,8 @@ export default function SelectionSteps({ piiAllowed = true, initialPackageId }: 
         setError("O pacote ou horário mudou. Escolha novamente para revisar os termos atuais.");
         return;
       }
-      setAuthoritativeReview(body as AuthoritativeReview);
+      const authoritative = body as AuthoritativeReview;
+      setAuthoritativeReview({ ...authoritative, price: authoritative.price ?? basePriceOnly(authoritative.package.priceCentavos) });
     } catch {
       setError("Não foi possível preparar a revisão autoritativa. Tente novamente.");
     } finally {
@@ -197,7 +205,13 @@ export default function SelectionSteps({ piiAllowed = true, initialPackageId }: 
     <p className="intro">Escolha um serviço e consulte os horários disponíveis para este estabelecimento.</p>
     {!piiAllowed && <p className="notice demo-notice"><strong>Demonstração limitada</strong><span>Agendamentos estão em modo de demonstração. Não solicitaremos dados pessoais e nenhuma reserva será confirmada.</span></p>}
     {error && <p className="error" role="alert">{error}</p>}
+    {selectedStart?.price?.promotion && <p className="notice" role="status">Promoção {selectedStart.price.promotion.name}: preço final conferido de {money(selectedStart.price.finalPriceCentavos)} (desconto de {money(selectedStart.price.discountCentavos)}).</p>}
+    {!piiAllowed && authoritativeReview?.price?.promotion && <section className="step demo-review" aria-label="Preço promocional conferido"><p>Preço normal: {money(authoritativeReview.price.basePriceCentavos)}</p><p>Promoção {authoritativeReview.price.promotion.name}: desconto de {money(authoritativeReview.price.discountCentavos)}.</p><p><strong>Preço final: {money(authoritativeReview.price.finalPriceCentavos)}</strong></p></section>}
     {!selectedPackage && <div className="step"><h2>Escolha o serviço</h2>{loading ? <p role="status">Carregando serviços…</p> : error ? <button className="button button-quiet" onClick={() => void loadPackages()}>Tentar novamente</button> : packages.length === 0 ? <p className="empty-state">Nenhum pacote disponível no momento.</p> : <div className="cards">{packages.map((item) => <button className="package-card" key={item.id} onClick={() => choosePackage(item)}><span className="package-name">{item.name}</span><span>{item.description}</span><span>{money(item.priceCentavos)} · {item.durationMinutes} min</span></button>)}</div>}</div>}
     {selectedPackage && <div className="step"><button className="back" onClick={() => choosePackage(null)}>← Trocar serviço</button><p className="selected">Serviço: <strong>{selectedPackage.name}</strong> · {money(selectedPackage.priceCentavos)} · {selectedPackage.durationMinutes} min</p><h2>Escolha o dia</h2><div className="day-list">{days.map((day, index) => <button key={day} className={selectedDay === day ? "day selected-day" : "day"} onClick={() => void chooseDay(day)}>{index === 0 ? "Hoje" : index === 1 ? "Amanhã" : new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, weekday: "short", day: "numeric", month: "short" }).format(new Date(`${day}T12:00:00Z`))}</button>)}</div>{selectedDay && <><h2>Escolha o horário</h2>{availabilityLoading ? <p role="status">Consultando disponibilidade…</p> : starts.length ? <div className="start-list">{starts.map((item) => <button className={selectedStart?.start === item.start ? "start selected-day" : "start"} key={item.start} onClick={() => { setPersonalDetails(null); setVehicleDetails(null); setServiceModeDetails(null); setPaymentIntent(null); setAuthoritativeReview(null); if (!piiAllowed) void reviewDemo(item); else setSelectedStart(item); }}>{new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, hour: "2-digit", minute: "2-digit" }).format(new Date(item.start))}</button>)}</div> : <p className="muted">Nenhum horário compatível encontrado neste dia.</p>}</>}{reviewLoading && <p role="status">Conferindo serviço, preço e horário atuais…</p>}{!piiAllowed && authoritativeReview && <section className="step demo-review" aria-label="Revisão demonstrativa"><h2>Revisão demonstrativa</h2><p>As informações abaixo foram conferidas novamente no servidor. Esta demonstração não cria uma reserva.</p><dl><dt>Serviço</dt><dd>{authoritativeReview.package.name}</dd><dt>Preço atual</dt><dd>{money(authoritativeReview.package.priceCentavos)}</dd><dt>Duração</dt><dd>{authoritativeReview.package.durationMinutes} min</dd><dt>Data e hora</dt><dd>{new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, dateStyle: "full", timeStyle: "short" }).format(new Date(authoritativeReview.start))}</dd></dl></section>}{piiAllowed && selectedStart && <PersonalStep onValid={(details) => { setPersonalDetails(details); setVehicleDetails(null); setServiceModeDetails(null); setPaymentIntent(null); setAuthoritativeReview(null); }} />}{piiAllowed && personalDetails && <VehicleStep onValid={(details) => { setVehicleDetails(details); setServiceModeDetails(null); setPaymentIntent(null); setAuthoritativeReview(null); }} />}{piiAllowed && vehicleDetails && <ServiceModeStep onValid={(details) => { setServiceModeDetails(details); setPaymentIntent(null); setAuthoritativeReview(null); }} />}{piiAllowed && serviceModeDetails && <PaymentStep onValid={(value) => void choosePayment(value)} />}{piiAllowed && paymentIntent && authoritativeReview && personalDetails && vehicleDetails && serviceModeDetails && <ReviewStep review={authoritativeReview} personal={personalDetails} vehicle={vehicleDetails} mode={serviceModeDetails} payment={paymentIntent} />}</div>}
   </section>;
+}
+
+function basePriceOnly(priceCentavos: string): PromotionPrice {
+  return { basePriceCentavos: priceCentavos, discountCentavos: "0", finalPriceCentavos: priceCentavos, promotion: null };
 }

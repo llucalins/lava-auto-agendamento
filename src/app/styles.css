@@ -5,3 +5,5 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
 .mobile-booking-cta{display:none}@media(max-width:640px){.mobile-booking-cta{display:inline-flex}}
 .site-nav a.button{color:#07111f}
+/* Promotion editor */
+.promotion-admin{display:grid;gap:1rem}.weekday-options{display:grid;gap:.35rem;grid-template-columns:repeat(2,minmax(0,1fr));margin:.4rem 0}.weekday-options label,.promotion-admin fieldset label{align-items:center;display:flex;gap:.55rem;font-weight:500}.promotion-admin fieldset fieldset{border-top:1px solid var(--line);margin-top:.75rem;padding-top:.75rem}

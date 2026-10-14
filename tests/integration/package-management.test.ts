@@ -30,7 +30,16 @@ describe("PostgreSQL admin package management", () => {
     });
 
     expect(created).toMatchObject({ revision: 1, state: "ACTIVE" });
-    await expect(listAdminPackages(owner.pool, owner.sessionCookie)).resolves.toContainEqual({
+    const rank = await owner.pool.query<{ rank: number }>(
+      `select count(*)::int as rank
+       from app.service_packages package
+       join app.service_package_revisions revision
+         on revision.package_id = package.package_id and revision.revision = package.current_revision
+       where revision.name <= $1`,
+      [packageName],
+    );
+    const page = Math.max(1, Math.ceil(rank.rows[0]!.rank / 50));
+    await expect(listAdminPackages(owner.pool, owner.sessionCookie, page)).resolves.toContainEqual({
       packageId: created.packageId,
       revision: 1,
       name: packageName,
@@ -177,7 +186,7 @@ async function insertBookingSnapshot(pool: Pool, packageId: string): Promise<str
     [bookingId, start, end, packageId],
   );
   await pool.query(
-    "insert into app.booking_package_snapshots (booking_id, package_id, package_revision, name, description, price_centavos, currency, duration_minutes) values ($1, $2, 1, 'Completo', 'Original', 10000, 'BRL', 60)",
+    "insert into app.booking_package_snapshots (booking_id, package_id, package_revision, name, description, price_centavos, currency, duration_minutes, final_price_centavos) values ($1, $2, 1, 'Completo', 'Original', 10000, 'BRL', 60, 10000)",
     [bookingId, packageId],
   );
   return bookingId;

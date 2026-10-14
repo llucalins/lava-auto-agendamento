@@ -74,7 +74,13 @@ async function applyGuardedCalendarOnce(
       acknowledgeConflicts ? "CALENDAR_CONFLICTS_ACKNOWLEDGED" : "CALENDAR_RULES_REPLACED",
     );
     const previousRevision = mutation.revision - 1;
-    const conflicts = await findNewConflicts(client, previousRevision, mutation.revision);
+    const conflicts = await findNewConflicts(
+      client,
+      previousRevision,
+      mutation.revision,
+      mutation.capacity,
+      mutation.previousCapacity,
+    );
     const conflictCount = Number(conflicts[0]?.conflictCount ?? 0);
 
     if (conflictCount > 0 && !acknowledgeConflicts) {
@@ -111,6 +117,8 @@ async function findNewConflicts(
   client: PoolClient,
   previousRevision: number,
   nextRevision: number,
+  nextCapacity: number,
+  previousCapacity: number,
 ): Promise<readonly ConflictRow[]> {
   const result = await client.query<ConflictRow>(
     `with versions(revision, version_name) as (
@@ -155,6 +163,29 @@ async function findNewConflicts(
        group by booking_id, booking_revision, status, service_start, service_end
        having bool_or(eligible) filter (where version_name = 'PREVIOUS')
           and not bool_or(eligible) filter (where version_name = 'NEXT')
+     ), capacity_affected as (
+       select distinct booking.booking_id, booking.revision as booking_revision, booking.status,
+              booking.service_start, booking.service_end
+       from app.capacity_allocations allocation
+       join app.bookings booking on booking.booking_id = allocation.booking_id
+       where $3::integer < $4::integer
+         and allocation.consumes_capacity
+         and booking.status in ('SCHEDULED', 'IN_PROGRESS')
+         and exists (
+           select point.service_start
+           from app.capacity_allocations point
+           join app.bookings point_booking on point_booking.booking_id = point.booking_id
+           where point.consumes_capacity
+             and point_booking.status in ('SCHEDULED', 'IN_PROGRESS')
+             and booking.service_start <= point.service_start
+             and booking.service_end > point.service_start
+           group by point.service_start
+           having count(*) > $3::integer
+         )
+     ), newly_conflicted as (
+       select * from changed
+       union
+       select * from capacity_affected
      )
      select booking_id as "bookingId", booking_revision as revision, status,
             service_start as "serviceStart", service_end as "serviceEnd",
@@ -162,10 +193,10 @@ async function findNewConflicts(
             to_char(service_start at time zone 'America/Fortaleza', 'HH24:MI') as "localStart",
             to_char(service_end at time zone 'America/Fortaleza', 'HH24:MI') as "localEnd",
             count(*) over()::text as "conflictCount"
-     from changed
+     from newly_conflicted
      order by service_start, booking_id
      limit ${MAX_CONFLICTS}`,
-    [previousRevision, nextRevision],
+    [previousRevision, nextRevision, nextCapacity, previousCapacity],
   );
   return result.rows;
 }

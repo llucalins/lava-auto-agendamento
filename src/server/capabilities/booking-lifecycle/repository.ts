@@ -2,12 +2,19 @@ import { randomUUID } from "node:crypto";
 
 import type { Pool } from "pg";
 import { z } from "zod";
+import type { PromotionPrice } from "../promotions/pricing";
 
 const createScheduledBookingSchema = z.object({
   packageId: z.uuid(),
   serviceStart: z.date(),
   serviceMode: z.enum(["DROP_OFF", "PICKUP_REQUESTED"]),
   intendedPaymentMethod: z.enum(["PIX", "CASH", "CREDIT_CARD", "DEBIT_CARD"]),
+  price: z.object({
+    basePriceCentavos: z.string().regex(/^\d+$/),
+    discountCentavos: z.string().regex(/^\d+$/),
+    finalPriceCentavos: z.string().regex(/^\d+$/),
+    promotion: z.object({ id: z.uuid(), revision: z.number().int().positive(), name: z.string().min(1).max(100) }).nullable(),
+  }).optional(),
 });
 
 export type CreateScheduledBooking = Readonly<{
@@ -15,6 +22,7 @@ export type CreateScheduledBooking = Readonly<{
   serviceStart: Date;
   serviceMode: "DROP_OFF" | "PICKUP_REQUESTED";
   intendedPaymentMethod: "PIX" | "CASH" | "CREDIT_CARD" | "DEBIT_CARD";
+  price?: PromotionPrice;
 }>;
 
 export type ScheduledBooking = Readonly<{
@@ -51,6 +59,7 @@ export async function createScheduledBooking(
        join app.service_package_revisions r
          on p.package_id = r.package_id and p.current_revision = r.revision
        where p.package_id = $2 and r.state = 'ACTIVE'
+         and ($11::bigint is null or r.price_centavos = $11::bigint)
      ), created_booking as (
        insert into app.bookings (
          booking_id, revision, status, service_start, service_end,
@@ -64,10 +73,12 @@ export async function createScheduledBooking(
      ), snapshot as (
        insert into app.booking_package_snapshots (
          booking_id, package_id, package_revision, name, description,
-         price_centavos, currency, duration_minutes
+         price_centavos, currency, duration_minutes,
+         promotion_id, promotion_revision, promotion_name, discount_centavos, final_price_centavos
        )
        select booking.booking_id, package.package_id, package.revision, package.name,
-              package.description, package.price_centavos, 'BRL', package.duration_minutes
+              package.description, package.price_centavos, 'BRL', package.duration_minutes,
+              $6::uuid, $7::integer, $8::text, coalesce($9::bigint, 0), coalesce($10::bigint, package.price_centavos)
        from created_booking booking
        join current_package package
          on package.package_id = booking.package_id and package.revision = booking.package_revision
@@ -82,6 +93,12 @@ export async function createScheduledBooking(
       parsed.data.serviceStart,
       parsed.data.serviceMode,
       parsed.data.intendedPaymentMethod,
+      parsed.data.price?.promotion?.id ?? null,
+      parsed.data.price?.promotion?.revision ?? null,
+      parsed.data.price?.promotion?.name ?? null,
+      parsed.data.price?.discountCentavos ?? null,
+      parsed.data.price?.finalPriceCentavos ?? null,
+      parsed.data.price?.basePriceCentavos ?? null,
     ],
   );
 

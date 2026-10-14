@@ -5,10 +5,13 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { createLocalSession } from "../../src/server/capabilities/admin-access/sessions";
 import {
+  getCalendarConfiguration,
   replaceCalendar,
   replaceCalendarInTransaction,
 } from "../../src/server/capabilities/admin-operations/calendar-management";
+import { applyGuardedCalendar } from "../../src/server/capabilities/admin-operations/calendar-conflicts";
 import { findSelectableStarts } from "../../src/server/capabilities/operating-calendar/availability";
+import { allocateBookingCapacity } from "../../src/server/capabilities/booking-lifecycle/allocations";
 import { withTransaction } from "../../src/server/persistence/transaction";
 
 const pool = chainPool("DATABASE_URL");
@@ -86,6 +89,8 @@ describe.sequential("PostgreSQL calendar administration", () => {
     const owner = await createActor("OWNER");
     const revision = await currentRevision();
     const invalid = [
+      { ...calendarCommand(revision), capacity: 0 },
+      { ...calendarCommand(revision), capacity: 21 },
       { ...calendarCommand(revision), weeklySchedule: [{ weekday: 0, windows: [{ start: "08:00", end: "10:00" }, { start: "09:59", end: "11:00" }] }] },
       { ...calendarCommand(revision), weeklySchedule: [{ weekday: 0, windows: [{ start: "18:00", end: "09:00" }] }] },
       { ...calendarCommand(revision), overrides: [{ date: "2026-02-30", kind: "CLOSED" }] },
@@ -97,7 +102,13 @@ describe.sequential("PostgreSQL calendar administration", () => {
   });
 
   it("enforces half-open window integrity in PostgreSQL while allowing back-to-back windows", async () => {
-    const revision = await currentRevision() + 10_000;
+    const revisionResult = await pool.query<{ revision: number }>(
+      `select greatest(
+         coalesce((select max(revision) from app.calendar_recurring_windows), 0),
+         coalesce((select max(revision) from app.calendar_overrides), 0)
+       ) + 1 as revision`,
+    );
+    const revision = revisionResult.rows[0]!.revision;
     await pool.query("insert into app.calendar_recurring_windows (weekday, starts_at, ends_at, revision) values (1, '08:00', '10:00', $1), (1, '10:00', '12:00', $1)", [revision]);
     await expect(pool.query(
       "insert into app.calendar_recurring_windows (weekday, starts_at, ends_at, revision) values (1, '09:59', '11:00', $1)",
@@ -111,15 +122,121 @@ describe.sequential("PostgreSQL calendar administration", () => {
       [randomUUID(), date, revision],
     )).rejects.toThrow();
   });
+
+  it("uses configured concurrent capacity in PostgreSQL availability", async () => {
+    const owner = await createActor("OWNER");
+    const client = await pool.connect();
+    const start = uniqueSundayStart();
+    const end = new Date(new Date(start).getTime() + 30 * 60_000).toISOString();
+    try {
+      await client.query("begin");
+      const current = await getCalendarConfiguration(client, owner.cookieValue);
+      const changed = await replaceCalendarInTransaction(client, owner.cookieValue, {
+        ...calendarCommand(current.configuration.expectedRevision),
+        capacity: 2,
+      });
+      expect(changed.capacity).toBe(2);
+
+      const packageId = await createPackage(client);
+      const first = await createBooking(client, packageId, start, end);
+      const second = await createBooking(client, packageId, start, end);
+      await expect(allocateBookingCapacity(client, first)).resolves.toBeDefined();
+      await expect(allocateBookingCapacity(client, second)).resolves.toBeDefined();
+
+      const selectable = await findSelectableStarts(client, {
+        packageId,
+        starts: [new Date(start), new Date(end)],
+      });
+      expect(selectable.map((slot) => slot.start)).toEqual([end]);
+      await client.query("rollback");
+    } catch (error) {
+      await client.query("rollback").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  });
+
+  it("limits runtime calendar capacity writes to the state column without delete", async () => {
+    await expect(pool.query("update app.capacity_units set ordinal = ordinal where false")).rejects.toMatchObject({ code: "42501" });
+    await expect(pool.query("delete from app.capacity_units where false")).rejects.toMatchObject({ code: "42501" });
+  });
+
+  it("previews capacity reductions that conflict with existing bookings and preserves reservations", async () => {
+    const owner = await createActor("OWNER");
+    const start = uniqueSundayStart();
+    const end = new Date(new Date(start).getTime() + 30 * 60_000).toISOString();
+    const before = await getCalendarConfiguration(pool, owner.cookieValue);
+    const expanded = await replaceCalendar(pool, owner.cookieValue, {
+      ...calendarCommand(before.configuration.expectedRevision),
+      capacity: 2,
+    });
+    const packageId = await createPackage(pool);
+    const first = await createBooking(pool, packageId, start, end);
+    const second = await createBooking(pool, packageId, start, end);
+    await expect(allocateBookingCapacity(pool, first)).resolves.toBeDefined();
+    await expect(allocateBookingCapacity(pool, second)).resolves.toBeDefined();
+
+    const reduction = { ...calendarCommand(expanded.revision), capacity: 1 };
+    const preview = await applyGuardedCalendar(pool, owner.cookieValue, reduction, false);
+    expect(preview).toMatchObject({
+      kind: "CONFLICT_WITH_EXISTING_BOOKINGS",
+      conflictCount: expect.any(Number),
+    });
+    if (preview.kind !== "CONFLICT_WITH_EXISTING_BOOKINGS") throw new Error("Expected a capacity conflict preview");
+    expect(preview.conflictCount).toBeGreaterThanOrEqual(2);
+    expect(preview.conflicts.map((conflict) => conflict.bookingId)).toEqual(expect.arrayContaining([first, second]));
+    await expect(getCalendarConfiguration(pool, owner.cookieValue)).resolves.toMatchObject({ configuration: { capacity: 2 } });
+
+    const applied = await applyGuardedCalendar(pool, owner.cookieValue, reduction, true);
+    expect(applied).toMatchObject({
+      kind: "APPLIED",
+      conflictsAcknowledged: preview.conflictCount,
+    });
+    await expect(pool.query(
+      "select status from app.bookings where booking_id = any($1::uuid[]) order by booking_id",
+      [[first, second]],
+    )).resolves.toMatchObject({ rows: [{ status: "SCHEDULED" }, { status: "SCHEDULED" }] });
+    await expect(pool.query(
+      "select count(*)::int as count from app.capacity_allocations where booking_id = any($1::uuid[]) and consumes_capacity",
+      [[first, second]],
+    )).resolves.toMatchObject({ rows: [{ count: 2 }] });
+  });
 });
 
 function calendarCommand(expectedRevision: number) {
   return {
     expectedRevision,
+    capacity: 1,
     weeklySchedule: [{ weekday: 0, windows: [{ start: "08:00", end: "10:00" }, { start: "13:00", end: "16:00" }] }],
     overrides: [{ date: "2026-09-20", kind: "OPEN" as const, windows: [{ start: "09:00", end: "10:00" }, { start: "14:00", end: "15:00" }] }],
     unavailability: [{ start: "2026-09-20T12:30:00Z", end: "2026-09-20T13:00:00Z" }],
   };
+}
+
+async function createPackage(queryable: Pick<Pool, "query">): Promise<string> {
+  const packageId = randomUUID();
+  await queryable.query("insert into app.service_packages (package_id, current_revision) values ($1, 1)", [packageId]);
+  await queryable.query("insert into app.service_package_revisions (package_id, revision, name, description, price_centavos, duration_minutes, state) values ($1, 1, 'Synthetic capacity', null, 5000, 30, 'ACTIVE')", [packageId]);
+  return packageId;
+}
+
+async function createBooking(queryable: Pick<Pool, "query">, packageId: string, start: string, end: string): Promise<string> {
+  const bookingId = randomUUID();
+  await queryable.query(
+    "insert into app.bookings (booking_id, revision, status, service_start, service_end, package_id, package_revision, service_mode, intended_payment_method) values ($1, 1, 'SCHEDULED', $2, $3, $4, 1, 'DROP_OFF', 'PIX')",
+    [bookingId, start, end, packageId],
+  );
+  return bookingId;
+}
+
+function uniqueSundayStart(): string {
+  const sunday = new Date("2070-01-01T00:00:00Z");
+  while (sunday.getUTCDay() !== 0) sunday.setUTCDate(sunday.getUTCDate() + 1);
+  const entropy = randomUUID();
+  sunday.setUTCDate(sunday.getUTCDate() + (Number.parseInt(entropy.slice(0, 8), 16) % 1_500) * 7);
+  const secondsAfterOpening = Number.parseInt(entropy.slice(9, 17), 16) % (60 * 60);
+  return new Date(sunday.getTime() + (11 * 60 * 60 + secondsAfterOpening) * 1_000).toISOString();
 }
 
 async function createActor(role: "OWNER" | "EMPLOYEE") {

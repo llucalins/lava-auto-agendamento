@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PublicEstablishmentDetails } from "./PublicEstablishmentDetails";
 
 export function SiteHeader() {
   return <header className="site-header">
@@ -11,5 +12,5 @@ export function SiteHeader() {
 }
 
 export function SiteFooter() {
-  return <footer className="site-footer"><Link className="brand" href="/"><span className="brand-mark" aria-hidden="true">L</span><span>Lava<span className="brand-accent">Auto</span></span></Link><p>Cuidado automotivo com hora marcada.</p><Link href="/admin/login">Acesso administrativo</Link><small>© {new Date().getFullYear()} Lava Auto</small></footer>;
+  return <footer className="site-footer"><Link className="brand" href="/"><span className="brand-mark" aria-hidden="true">L</span><span>Lava<span className="brand-accent">Auto</span></span></Link><p>Cuidado automotivo com hora marcada.</p><PublicEstablishmentDetails /><Link href="/admin/login">Acesso administrativo</Link><small>© {new Date().getFullYear()} Lava Auto</small></footer>;
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
+import type { Pool } from "pg";
 
 import {
   findSelectableStarts,
@@ -30,23 +31,33 @@ describe("public availability", () => {
     let sql = "";
     let values: readonly unknown[] = [];
 
-    const available = await findSelectableStarts(
-      {
+    const fakePool = {
         query: async (query: string, parameters: readonly unknown[]) => {
-          sql = query;
-          values = parameters;
+          if (query.includes("candidate_inputs")) {
+            sql = query;
+            values = parameters;
+            return {
+              rows: [{ start: new Date("2026-08-31T11:30:00Z"), end: new Date("2026-08-31T12:00:00Z"), packageRevision: 3, calendarRevision: 5 }],
+            };
+          }
           return {
             rows: [
               {
                 start: new Date("2026-08-31T11:30:00Z"),
-                end: new Date("2026-08-31T12:00:00Z"),
-                packageRevision: 3,
-                calendarRevision: 5,
+                basePriceCentavos: "12500",
+                discountKind: null,
+                discountValue: null,
+                promotionId: null,
+                promotionRevision: null,
+                promotionName: null,
+                eligibleCount: 0,
               },
             ],
           };
         },
-      },
+      };
+    const available = await findSelectableStarts(
+      fakePool as unknown as Pick<Pool, "query">,
       { packageId, starts: [new Date("2026-08-31T11:30:00Z")] },
     );
 
@@ -56,6 +67,7 @@ describe("public availability", () => {
         end: "2026-08-31T12:00:00.000Z",
         packageRevision: 3,
         calendarRevision: 5,
+        price: { basePriceCentavos: "12500", discountCentavos: "0", finalPriceCentavos: "12500", promotion: null },
       },
     ]);
     expect(sql).toContain("r.duration_minutes");
@@ -63,7 +75,7 @@ describe("public availability", () => {
     expect(sql).toContain("candidate.service_end <= window_end");
     expect(sql).toContain("unavailability.starts_at < candidate.service_end");
     expect(sql).not.toContain("insert into");
-    expect(values).toEqual([packageId, ["2026-08-31T11:30:00.000Z"]]);
+    expect(values).toEqual([packageId, ["2026-08-31T11:30:00.000Z"], false]);
   });
 });
 

@@ -24,6 +24,7 @@ const unavailabilitySchema = z.object({
 }).strict();
 const calendarSchema = z.object({
   expectedRevision: z.number().int().min(1),
+  capacity: z.number().int().min(1).max(20),
   weeklySchedule: z.array(weeklyDaySchema).max(7),
   overrides: z.array(overrideSchema).max(366),
   unavailability: z.array(unavailabilitySchema).max(500),
@@ -35,11 +36,14 @@ type CalendarRow = Readonly<{ revision: number; timezone: string; calendarRef: s
 type RecurringRow = Readonly<{ weekday: number; start: string; end: string }>;
 type OverrideRow = Readonly<{ date: string; start: string | null; end: string | null; isClosed: boolean }>;
 type UnavailabilityRow = Readonly<{ start: Date; end: Date }>;
+type CapacityRow = Readonly<{ capacity: number }>;
 export type CalendarMutationResult = Readonly<{
   calendarRef: string;
   revision: number;
   timezone: "America/Fortaleza";
   auditEventId: string;
+  previousCapacity: number;
+  capacity: number;
 }>;
 
 export async function replaceCalendar(
@@ -61,7 +65,7 @@ export async function getCalendarConfiguration(
   );
   const calendar = calendarResult.rows[0];
   if (!calendar || calendar.timezone !== "America/Fortaleza") throw new Error("Invalid calendar configuration");
-  const [recurring, overrides, unavailable] = await Promise.all([
+  const [recurring, overrides, unavailable, capacity] = await Promise.all([
     pool.query<RecurringRow>(
       `select weekday, to_char(starts_at, 'HH24:MI') as start, to_char(ends_at, 'HH24:MI') as end
        from app.calendar_recurring_windows where revision = $1 order by weekday, starts_at`,
@@ -77,6 +81,9 @@ export async function getCalendarConfiguration(
       `select starts_at as start, ends_at as end from app.calendar_unavailability
        where revision = $1 order by starts_at`,
       [calendar.revision],
+    ),
+    pool.query<CapacityRow>(
+      "select count(*)::int as capacity from app.capacity_units where state = 'ACTIVE'",
     ),
   ]);
   const weeklySchedule = Array.from({ length: 7 }, (_, weekday) => ({
@@ -95,6 +102,7 @@ export async function getCalendarConfiguration(
     timezone: "America/Fortaleza",
     configuration: {
       expectedRevision: calendar.revision,
+      capacity: capacity.rows[0]?.capacity ?? 0,
       weeklySchedule,
       overrides: projectedOverrides,
       unavailability: unavailable.rows.map((row) => ({ start: row.start.toISOString(), end: row.end.toISOString() })),
@@ -122,6 +130,11 @@ export async function replaceCalendarInTransaction(
   const calendar = calendarResult.rows[0];
   if (!calendar || calendar.timezone !== "America/Fortaleza") throw new Error("Invalid calendar configuration");
   if (calendar.revision !== parsed.data.expectedRevision) throw new Error("Stale calendar revision");
+  const capacityResult = await client.query<CapacityRow>(
+    "select count(*)::int as capacity from app.capacity_units where state = 'ACTIVE'",
+  );
+  const previousCapacity = capacityResult.rows[0]?.capacity ?? 0;
+  await setCapacity(client, parsed.data.capacity);
   const revision = calendar.revision + 1;
 
   await insertRules(client, revision, parsed.data);
@@ -144,7 +157,35 @@ export async function replaceCalendarInTransaction(
     revision,
     timezone: "America/Fortaleza",
     auditEventId,
+    previousCapacity,
+    capacity: parsed.data.capacity,
   };
+}
+
+async function setCapacity(client: PoolClient, desired: number): Promise<void> {
+  const result = await client.query<{ capacityUnitId: string; state: "ACTIVE" | "INACTIVE"; ordinal: number }>(
+    `select capacity_unit_id as "capacityUnitId", state, ordinal
+     from app.capacity_units order by ordinal for update`,
+  );
+  const active = result.rows.filter((unit) => unit.state === "ACTIVE");
+  const activateCount = Math.max(0, desired - active.length);
+  const inactive = result.rows.filter((unit) => unit.state === "INACTIVE");
+  for (const unit of inactive.slice(0, activateCount)) {
+    await client.query("update app.capacity_units set state = 'ACTIVE' where capacity_unit_id = $1", [unit.capacityUnitId]);
+  }
+  const missing = desired - active.length - Math.min(activateCount, inactive.length);
+  const maxOrdinal = Math.max(0, ...result.rows.map((unit) => unit.ordinal));
+  for (let index = 0; index < missing; index += 1) {
+    await client.query(
+      "insert into app.capacity_units (capacity_unit_id, state, ordinal) values ($1, 'ACTIVE', $2)",
+      [randomUUID(), maxOrdinal + index + 1],
+    );
+  }
+  if (desired < active.length) {
+    for (const unit of active.slice(desired)) {
+      await client.query("update app.capacity_units set state = 'INACTIVE' where capacity_unit_id = $1", [unit.capacityUnitId]);
+    }
+  }
 }
 
 async function insertRules(client: PoolClient, revision: number, input: CalendarInput): Promise<void> {

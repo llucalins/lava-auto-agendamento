@@ -98,6 +98,7 @@ test("denies EMPLOYEE calendar access and mutation without CSRF", async ({ conte
 function openConfiguration(expectedRevision: number) {
   return {
     expectedRevision,
+    capacity: 1,
     weeklySchedule: Array.from({ length: 7 }, (_, weekday) => ({ weekday, windows: [{ start: "00:00", end: "23:59" }] })),
     overrides: [],
     unavailability: [],

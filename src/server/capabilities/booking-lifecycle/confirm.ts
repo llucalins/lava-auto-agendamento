@@ -15,6 +15,7 @@ import { findSelectableStarts } from "../operating-calendar/availability";
 import { acquireCalendarConfirmationLock } from "../operating-calendar/coordination";
 import { type BookingReviewPayload, verifyBookingReview } from "../public-booking-flow/review";
 import { applyTransactionResourceLimits } from "../../security/resource-controls";
+import { acquirePromotionPricingLock, samePromotionPrice } from "../promotions/pricing";
 
 const operationScope = "public.booking.confirm";
 const maxTransactionAttempts = 2;
@@ -71,7 +72,7 @@ function storedResult(row: IntentRow, fingerprint: string): ConfirmationResult {
 async function recordRejected(
   client: PoolClient,
   command: ConfirmBookingCommand,
-  code: "CAPACITY_UNAVAILABLE" | "STALE_PACKAGE" | "STALE_CALENDAR",
+  code: "CAPACITY_UNAVAILABLE" | "STALE_PACKAGE" | "STALE_CALENDAR" | "STALE_PROMOTION",
 ): Promise<ConfirmationResult> {
   const recorded = await recordConfirmationIntentOutcome(client, {
     ...command,
@@ -98,6 +99,7 @@ async function confirmInTransaction(
     await client.query("begin isolation level serializable");
     await applyTransactionResourceLimits(client);
     await acquireCalendarConfirmationLock(client, "CONFIRMATION");
+    await acquirePromotionPricingLock(client, "READ");
     await client.query("select pg_advisory_xact_lock(hashtextextended($1, 0))", [
       `${operationScope}:${command.intentKey}`,
     ]);
@@ -149,13 +151,37 @@ async function confirmInTransaction(
       packageId: command.material.packageId,
       starts: [command.material.serviceStart],
     });
-    if (!selectable.some((candidate) =>
+    const currentSlot = selectable.find((candidate) =>
       candidate.start === review.serviceStart
       && candidate.end === review.serviceEnd
       && candidate.packageRevision === review.packageRevision
       && candidate.calendarRevision === review.calendarRevision
-    )) {
-      const result = await recordRejected(client, command, "STALE_CALENDAR");
+    );
+    if (!currentSlot) {
+      const calendarEligible = await findSelectableStarts(client, {
+        packageId: command.material.packageId,
+        starts: [command.material.serviceStart],
+      }, { ignoreCapacity: true });
+      const sameCalendar = calendarEligible.some((candidate) =>
+        candidate.start === review.serviceStart
+        && candidate.end === review.serviceEnd
+        && candidate.packageRevision === review.packageRevision
+        && candidate.calendarRevision === review.calendarRevision
+      );
+      const sameSchedule = calendarEligible.find((candidate) =>
+        candidate.start === review.serviceStart && candidate.end === review.serviceEnd
+        && candidate.packageRevision === review.packageRevision
+        && candidate.calendarRevision === review.calendarRevision,
+      );
+      const code = sameSchedule && !samePromotionPrice(sameSchedule.price, review.price)
+        ? "STALE_PROMOTION"
+        : sameCalendar ? "CAPACITY_UNAVAILABLE" : "STALE_CALENDAR";
+      const result = await recordRejected(client, command, code);
+      await client.query("commit");
+      return result;
+    }
+    if (!samePromotionPrice(currentSlot.price, review.price)) {
+      const result = await recordRejected(client, command, "STALE_PROMOTION");
       await client.query("commit");
       return result;
     }
@@ -167,6 +193,7 @@ async function confirmInTransaction(
         serviceStart: command.material.serviceStart,
         serviceMode: command.material.serviceMode,
         intendedPaymentMethod: command.material.intendedPaymentMethod,
+        price: currentSlot.price,
       });
       const allocationId = await allocateBookingCapacity(client, booking.bookingId);
       if (!allocationId) {

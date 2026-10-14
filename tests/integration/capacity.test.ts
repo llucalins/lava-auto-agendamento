@@ -58,7 +58,7 @@ describe("capacity allocation integrity", () => {
     );
 
     await expect(allocateBookingCapacity(pool, scheduled)).resolves.toBeDefined();
-    await expect(allocateBookingCapacity(pool, overlapping)).rejects.toThrow();
+    await expect(allocateBookingCapacity(pool, overlapping)).resolves.toBeUndefined();
     await expect(allocateBookingCapacity(pool, backToBack)).resolves.toBeDefined();
     await expect(allocateBookingCapacity(pool, inProgress)).resolves.toBeDefined();
     await expect(allocateBookingCapacity(pool, cancelled)).resolves.toBeUndefined();

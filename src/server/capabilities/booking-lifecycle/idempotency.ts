@@ -38,6 +38,7 @@ const outcomeSchema = z.discriminatedUnion("kind", [
       "CAPACITY_UNAVAILABLE",
       "STALE_PACKAGE",
       "STALE_CALENDAR",
+      "STALE_PROMOTION",
       "STALE_BOOKING",
       "BOOKING_REQUEST_INVALID",
     ]),
