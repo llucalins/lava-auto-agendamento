@@ -23,7 +23,7 @@ export default async function AdminCalendarPage() {
     <section className="step" aria-labelledby="calendar-summary-title">
       <h2 id="calendar-summary-title">Configuração atual</h2>
       <p>Revisão {current.configuration.expectedRevision}</p>
-      <p>{current.configuration.overrides.length} exceções de data · {current.configuration.unavailability.length} bloqueios temporários</p>
+      <p>{current.configuration.capacity} atendimentos simultâneos · {current.configuration.overrides.length} exceções de data · {current.configuration.unavailability.length} bloqueios temporários</p>
     </section>
     <CalendarConflictForm initialConfiguration={current.configuration} />
   </div></main>;
