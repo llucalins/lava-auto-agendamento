@@ -106,19 +106,27 @@ test("OWNER creates a service and promotion; customer books against live calenda
     expect(trackingCredential).toMatch(/^[A-Za-z0-9_-]{43}$/);
 
     const category = dayOffset === 0 ? "today" : "upcoming";
-    const rank = await pool.query<{ rank: number }>(
-      `select count(*)::int as rank
+    const rank = await pool.query<{ rank: number; total: number }>(
+      `select count(*) filter (
+                where (booking.service_start, booking.booking_id) <= ($1::timestamptz, $2::uuid)
+              )::int as rank,
+              count(*)::int as total
        from app.bookings booking cross join app.operating_calendar calendar
        where booking.status = 'SCHEDULED'
-         and (booking.service_start at time zone calendar.timezone)::date > (now() at time zone calendar.timezone)::date
-         and (booking.service_start, booking.booking_id) <= ($1::timestamptz, $2::uuid)`,
+         and (booking.service_start at time zone calendar.timezone)::date > (now() at time zone calendar.timezone)::date`,
       [availableStart, bookingId],
     );
-    const bookingPage = Math.max(1, Math.ceil(rank.rows[0].rank / 50));
+    const bookingsPerPage = 50;
+    const bookingPage = Math.max(1, Math.ceil(rank.rows[0].rank / bookingsPerPage));
+    const pageCount = Math.ceil(rank.rows[0].total / bookingsPerPage);
     await ownerPage.goto(`/admin/bookings?category=${category}&status=SCHEDULED&page=${bookingPage}`);
     const pagination = ownerPage.getByRole("navigation", { name: "Paginação de agendamentos" });
-    await expect(pagination.getByText(`Página ${bookingPage}`)).toBeVisible();
-    if (bookingPage > 1) await expect(pagination.getByRole("link", { name: "Página anterior" })).toBeVisible();
+    if (pageCount > 1) {
+      await expect(pagination.getByText(`Página ${bookingPage}`)).toBeVisible();
+      if (bookingPage > 1) await expect(pagination.getByRole("link", { name: "Página anterior" })).toBeVisible();
+    } else {
+      await expect(pagination).toHaveCount(0);
+    }
     await expect(ownerPage.locator(`a[href="/admin/bookings/${bookingId}"]`)).toContainText(packageName);
     await expect(ownerPage.locator(`a[href="/admin/bookings/${bookingId}"]`)).toContainText("100,00");
     await ownerPage.locator(`a[href="/admin/bookings/${bookingId}"]`).click();
