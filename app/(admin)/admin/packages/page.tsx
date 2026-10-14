@@ -22,7 +22,7 @@ export default async function AdminPackagesPage({
     notFound();
   }
 
-  return <main><div className="admin-shell">
+  return <main className="admin-page"><div className="admin-shell">
     <p className="eyebrow">Administração</p>
     <h1>Pacotes</h1>
     <p className="intro">Crie versões prospectivas sem alterar os termos já confirmados.</p>

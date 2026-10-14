@@ -245,10 +245,16 @@ describe("capacity allocation concurrency", () => {
       const backend = await confirmationClient.query<{ backendPid: number }>(
         'select pg_backend_pid() as "backendPid"',
       );
-      const confirmation = allocateBookingCapacity(confirmationClient, newBooking);
+      const confirmation = Promise.allSettled([
+        allocateBookingCapacity(confirmationClient, newBooking),
+      ]);
       await waitForCapacityLock(pool, backend.rows[0]!.backendPid);
       await cancellationClient.query("rollback");
-      await expect(confirmation).rejects.toMatchObject({ code: "23P01" });
+      const [confirmationResult] = await confirmation;
+      expect(confirmationResult.status).toBe("rejected");
+      if (confirmationResult.status === "rejected") {
+        expect(confirmationResult.reason).toMatchObject({ code: "23P01" });
+      }
       await rollback(confirmationClient);
 
       const allocations = await pool.query<{

@@ -58,8 +58,9 @@ test("an authenticated OWNER navigates bookings and performs essential audited a
 
 test("offers an operational browser entry point for administrative login", async ({ page }) => {
   await page.goto("/admin/login");
-  await expect(page.getByRole("heading", { name: "Entrar no painel" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Entrar com autenticação segura" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Acesso administrativo" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continuar com Google" })).toBeVisible();
+  await expect(page.getByLabel(/senha/i)).toHaveCount(0);
 });
 
 async function createOwnerSession(pool: Pool) {
@@ -115,8 +116,10 @@ function createAuditPool(): Pool {
 async function uniqueStartsToday(pool: Pool): Promise<readonly [Date, Date]> {
   const dateKey = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Fortaleza" }).format(new Date());
   const available: Date[] = [];
-  for (let hour = 8; hour < 18 && available.length < 2; hour += 1) {
-    const start = new Date(`${dateKey}T${String(hour).padStart(2, "0")}:00:00-03:00`);
+  for (let minuteOfDay = 0; minuteOfDay < 1_440 && available.length < 2; minuteOfDay += 30) {
+    const hour = Math.floor(minuteOfDay / 60);
+    const minute = minuteOfDay % 60;
+    const start = new Date(`${dateKey}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00-03:00`);
     const end = new Date(start.getTime() + 30 * 60_000);
     const occupied = await pool.query(
       `select 1
