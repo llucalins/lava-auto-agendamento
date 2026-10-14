@@ -6,6 +6,7 @@ import { z } from "zod";
 import { withTransaction } from "../../persistence/transaction";
 import { resolveAuthorizedSession } from "../admin-access/authorization";
 import { writeAuditEvent } from "../audit-trail/writer";
+import { acquirePromotionPricingLock } from "../promotions/pricing";
 
 const packageTermsSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -90,6 +91,8 @@ export async function createAdminPackageInTransaction(
   const actor = await resolveAuthorizedSession(client, sessionCookie, "PACKAGE_MANAGE");
   if (!actor) throw new Error("Forbidden");
 
+  await acquirePromotionPricingLock(client, "WRITE");
+
   const packageId = randomUUID();
   await client.query("insert into app.service_packages (package_id, current_revision) values ($1, 1)", [packageId]);
   await insertRevision(client, packageId, 1, parsed.data);
@@ -122,6 +125,7 @@ export async function reviseAdminPackageInTransaction(
   const actor = await resolveAuthorizedSession(client, sessionCookie, "PACKAGE_MANAGE");
   if (!actor) throw new Error("Forbidden");
 
+  await acquirePromotionPricingLock(client, "WRITE");
   const packageResult = await client.query<CurrentPackageRow>(
     'select current_revision as "currentRevision" from app.service_packages where package_id = $1 for update',
     [parsed.data.packageId],
@@ -139,6 +143,17 @@ export async function reviseAdminPackageInTransaction(
   const current = currentResult.rows[0];
   if (!current) throw new Error("Stale package revision");
   if (hasSameTerms(current, parsed.data)) throw new Error("No package change requested");
+  if (current.priceCentavos !== String(parsed.data.priceCentavos)) {
+    const invalidPromotion = await client.query(
+      `select 1 from app.promotion_services service
+       join app.promotions promotion using (promotion_id)
+       where service.package_id = $1 and promotion.state = 'ACTIVE'
+         and promotion.discount_kind = 'FIXED' and promotion.discount_value > $2
+       limit 1`,
+      [parsed.data.packageId, parsed.data.priceCentavos],
+    );
+    if (invalidPromotion.rows.length > 0) throw new Error("Active fixed promotion exceeds new service price");
+  }
 
   const revision = currentRevision + 1;
   await insertRevision(client, parsed.data.packageId, revision, parsed.data);

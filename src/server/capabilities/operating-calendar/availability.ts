@@ -1,6 +1,8 @@
 import { z } from "zod";
+import type { Pool } from "pg";
 
 import { assertBoundedDateWindow } from "../../security/resource-controls";
+import { calculatePricesForStarts, type PromotionPrice } from "../promotions/pricing";
 
 const MAX_CANDIDATES = 32;
 
@@ -21,18 +23,12 @@ type AvailabilityRow = Readonly<{
   calendarRevision: number;
 }>;
 
-type AvailabilityDatabase = Readonly<{
-  query: (
-    query: string,
-    values: unknown[],
-  ) => Promise<Readonly<{ rows: AvailabilityRow[] }>>;
-}>;
-
 export type SelectableStart = Readonly<{
   start: string;
   end: string;
   packageRevision: number;
   calendarRevision: number;
+  price: PromotionPrice;
 }>;
 
 export function parseAvailabilityRequest(input: unknown): AvailabilityRequest {
@@ -62,11 +58,11 @@ export function parseAvailabilityRequest(input: unknown): AvailabilityRequest {
 }
 
 export async function findSelectableStarts(
-  pool: AvailabilityDatabase,
+  pool: Pick<Pool, "query">,
   request: AvailabilityRequest,
   options: Readonly<{ ignoreCapacity?: boolean }> = {},
 ): Promise<SelectableStart[]> {
-  const result = await pool.query(
+  const result = await pool.query<AvailabilityRow>(
     `with selected_package as (
        select r.duration_minutes, r.revision as package_revision
        from app.service_packages p
@@ -141,10 +137,12 @@ export async function findSelectableStarts(
     ],
   );
 
+  const prices = await calculatePricesForStarts(pool, request.packageId, result.rows.map((row) => row.start));
   return result.rows.map((row) => ({
     start: row.start.toISOString(),
     end: row.end.toISOString(),
     packageRevision: row.packageRevision,
     calendarRevision: row.calendarRevision,
+    price: prices.get(row.start.toISOString())!,
   }));
 }

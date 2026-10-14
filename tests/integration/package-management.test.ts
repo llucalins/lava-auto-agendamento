@@ -177,7 +177,7 @@ async function insertBookingSnapshot(pool: Pool, packageId: string): Promise<str
     [bookingId, start, end, packageId],
   );
   await pool.query(
-    "insert into app.booking_package_snapshots (booking_id, package_id, package_revision, name, description, price_centavos, currency, duration_minutes) values ($1, $2, 1, 'Completo', 'Original', 10000, 'BRL', 60)",
+    "insert into app.booking_package_snapshots (booking_id, package_id, package_revision, name, description, price_centavos, currency, duration_minutes, final_price_centavos) values ($1, $2, 1, 'Completo', 'Original', 10000, 'BRL', 60, 10000)",
     [bookingId, packageId],
   );
   return bookingId;
